@@ -1,31 +1,46 @@
-// index.js (Ana Giriş Noktası)
+// index.js (Güncellenmiş Hali)
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
+const path = require('path');
+const http = require('http');
+const { Server } = require("socket.io");
 
-// 1. .env dosyasındaki config'leri yükle
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// 2. Temel Middleware'ler
-app.use(cors()); // Farklı portlardan (frontend) gelen isteklere izin ver
-app.use(express.json()); // Gelen JSON body'lerini işle
+app.use(cors());
+app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// 3. Ana API Yönlendiricisi
-// Tüm rotalarımız /api prefix'i ile başlayacak
 const mainRouter = require('./src/routes');
 app.use('/api', mainRouter);
 
-// 4. (Opsiyonel) Temel Hata Yakalama
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).send({ error: 'Sunucuda beklenmedik bir hata oluştu!' });
 });
 
-// 5. Sunucuyu Başlat
-app.listen(PORT, () => {
-  console.log(`🚀 Backend sunucusu http://localhost:${PORT} adresinde çalışıyor.`);
+// === SOCKET.IO GÜNCELLEMESİ ===
+
+const httpServer = http.createServer(app);
+const io = new Server(httpServer, {
+    cors: {
+        origin: "*", 
+        methods: ["GET", "POST"]
+    }
+});
+
+// YENİ: io sunucusunu app'e ekle (controller'ların erişebilmesi için)
+app.set('io', io); 
+
+// Socket.io bağlantı mantığını çağır
+const initializeSocket = require('./src/socket/chat.handler');
+initializeSocket(io); // Bu dosya bir sonraki adımda güncellenecek
+
+httpServer.listen(PORT, () => {
+  console.log(`🚀 Backend (HTTP ve WebSocket) sunucusu http://localhost:${PORT} adresinde çalışıyor.`);
 });

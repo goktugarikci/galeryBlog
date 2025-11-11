@@ -4,7 +4,7 @@ const {
     createCategory, getAllCategories, updateCategory, deleteCategory,
     createSubCategory,
     createPost, getAllPosts, getPostById, updatePost, deletePost
-} = require('../../controllers/blog.controller');
+} = require('../controllers/blog.controller');
 const { verifyToken, isAdmin } = require('../middleware/auth.middleware');
 
 // --- Kategori Rotaları ---

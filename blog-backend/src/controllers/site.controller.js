@@ -1,5 +1,5 @@
 // src/controllers/site.controller.js
-const prisma = require('../config/prisma');
+const prisma = require('../config/prisma'); // Yolu ../config/prisma olarak düzeltin
 
 // Ayarları getiren veya yoksa oluşturan yardımcı fonksiyon
 const getOrCreateSettings = async () => {
@@ -46,6 +46,10 @@ const updateSettings = async (req, res) => {
       footerText,
       homeLayout,
       
+      // Navbar/Footer Düzeni Alanları
+      navLayout,
+      footerLinksJson,
+
       // Ana Tema Renkleri
       colorPrimary,
       colorSecondary,
@@ -62,7 +66,13 @@ const updateSettings = async (req, res) => {
       seoTitle,
       seoDescription,
       seoKeywords,
-      seoAuthor
+      seoAuthor,
+
+      // E-ticaret Modu Alanları
+      eCommerceEnabled,
+      whatsAppNumber,
+      whatsAppMessageTemplate
+
     } = req.body;
 
     // Ayarların mevcut ID'sini al
@@ -76,6 +86,10 @@ const updateSettings = async (req, res) => {
         navLinksJson,
         footerText,
         homeLayout,
+
+        // Navbar/Footer
+        navLayout,
+        footerLinksJson,
         
         // Renkler
         colorPrimary,
@@ -93,7 +107,12 @@ const updateSettings = async (req, res) => {
         seoTitle,
         seoDescription,
         seoKeywords,
-        seoAuthor
+        seoAuthor,
+
+        // E-Ticaret Modu
+        eCommerceEnabled,
+        whatsAppNumber,
+        whatsAppMessageTemplate
       }
     });
     
@@ -106,5 +125,6 @@ const updateSettings = async (req, res) => {
 
 module.exports = {
   getSettings,
-  updateSettings
+  updateSettings,
+  getOrCreateSettings,
 };

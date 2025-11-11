@@ -1,7 +1,7 @@
 // src/routes/auth.routes.js
 const router = require('express').Router();
 // Controller'dan yeni fonksiyonları import et
-const { register, login, getProfile, updateProfile } = require('../../controllers/auth.controller');
+const { register, login, getProfile, updateProfile } = require('../controllers/auth.controller');
 const { verifyToken } = require('../middleware/auth.middleware');
 
 // Herkesin erişebileceği rotalar

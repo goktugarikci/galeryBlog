@@ -16,17 +16,20 @@ const createSubmission = async (req, res) => {
 
         const submission = await prisma.contactSubmission.create({
             data: {
-                firstName,
-                lastName,
-                email,
-                phone,
-                address,
-                subject,
-                message
-                // isRead: false (varsayılan)
+                firstName, lastName, email, phone, address, subject, message
             }
         });
-        // (Burada opsiyonel olarak admin'e e-posta gönderme işlemi eklenebilir)
+
+        // === YENİ EKLEME: WebSocket Bildirimi ===
+        // 1. index.js'te app'e eklediğimiz 'io' sunucusunu al
+        const io = req.app.get('io');
+        
+        // 2. 'admin_room' odasındaki tüm adminlere yeni mesajı ilet
+        if (io) {
+            io.to('admin_room').emit('admin_new_contact_message', submission);
+        }
+        // === SON ===
+
         res.status(201).json({ message: 'Mesajınız başarıyla alındı. Teşekkür ederiz.' });
 
     } catch (error) {

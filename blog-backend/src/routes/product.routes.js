@@ -5,7 +5,7 @@ const {
     createProductSubCategory,
     createProduct, getAllProducts, getProductById, updateProduct, deleteProduct,applyDiscount,
     removeDiscount
-} = require('../../controllers/product.controller');
+} = require('../controllers/product.controller');
 const { verifyToken, isAdmin } = require('../middleware/auth.middleware');
 
 // --- Ürün Kategori Rotaları ---

@@ -5,7 +5,7 @@ const {
     getAllSubmissions, 
     markSubmissionAsRead, 
     deleteSubmission 
-} = require('../../controllers/contact.controller');
+} = require('../controllers/contact.controller');
 const { verifyToken, isAdmin } = require('../middleware/auth.middleware');
 
 // --- ZİYARETÇİ ROTASI ---

@@ -162,11 +162,65 @@ const updateUserRole = async (req, res) => {
     }
 };
 
+// ===================================
+// CANLI DESTEK YÖNETİMİ (ADMIN)
+// ===================================
+
+/**
+ * GET /api/admin/chats
+ * Admin: Tüm "açık" canlı destek odalarını listeler.
+ */
+const getOpenChatRooms = async (req, res) => {
+    try {
+        const rooms = await prisma.chatRoom.findMany({
+            where: { status: 'open' },
+            include: {
+                user: { select: { id: true, firstName: true, lastName: true, email: true } },
+                _count: { // Odadaki okunmamış mesaj sayısı
+                    select: { messages: { where: { isRead: false, authorRole: 'user' } } }
+                }
+            },
+            orderBy: { updatedAt: 'desc' }
+        });
+        res.json(rooms);
+    } catch (error) {
+        res.status(500).json({ error: 'Sohbet odaları getirilemedi: ' + error.message });
+    }
+};
+
+/**
+ * GET /api/admin/chats/:roomId
+ * Admin: Belirli bir sohbet odasının tüm mesaj geçmişini getirir.
+ */
+const getChatHistory = async (req, res) => {
+    try {
+        const { roomId } = req.params;
+        const messages = await prisma.chatMessage.findMany({
+            where: { roomId: roomId },
+            orderBy: { createdAt: 'asc' },
+            include: { author: { select: { firstName: true } } }
+        });
+        
+        // (Opsiyonel: Admin odaya girdiği anda tüm mesajları okundu say)
+        await prisma.chatMessage.updateMany({
+            where: { roomId: roomId, isRead: false, authorRole: 'user' },
+            data: { isRead: true }
+        });
+        
+        res.json(messages);
+    } catch (error) {
+        res.status(500).json({ error: 'Sohbet geçmişi getirilemedi: ' + error.message });
+    }
+};
+
 module.exports = {
     getAllOrders,
     getOrderById,
     updateOrderStatus,
     updatePaymentStatus,
     getAllUsers,
-    updateUserRole
+    updateUserRole,
+    // YENİ EKLEMELER:
+    getOpenChatRooms,
+    getChatHistory
 };

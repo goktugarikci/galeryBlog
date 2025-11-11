@@ -1,6 +1,6 @@
 // src/routes/site.routes.js
 const router = require('express').Router();
-const { getSettings, updateSettings } = require('../../controllers/site.controller');
+const { getSettings, updateSettings } = require('../controllers/site.controller');
 const { verifyToken, isAdmin } = require('../middleware/auth.middleware');
 
 /**

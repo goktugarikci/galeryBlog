@@ -35,6 +35,10 @@ model User {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  chatRooms     ChatRoom[]       // Bir kullanıcının sohbet odaları
+  chatMessages  ChatMessage[]    // Bir kullanıcının gönderdiği mesajlar
+  
 }
 
 
@@ -79,6 +83,15 @@ model SiteSettings {
   seoDescription  String?  // Global meta description
   seoKeywords     String?  // Global meta keywords
   seoAuthor       String?  // Meta author tag
+
+// --- YENİ ALAN: Navbar Düzeni ---
+  navLayout    String   @default("top") // "top" (Üstte) veya "left" (Solda)
+  
+  // --- YENİ ALAN: Footer Düzeni (Linkler) ---
+  // Adminin "Gizlilik" veya "İletişim" linklerini eklemesi için.
+  // Örn: [{"text": "Gizlilik Politikası", "url": "/gizlilik-politikasi"}]
+  footerLinksJson String?
+
 }
 
 // Anasayfa Slider görselleri
@@ -293,6 +306,86 @@ model Notification {
 
   userId    String   @db.ObjectId
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  createdAt DateTime @default(now())
+}
+
+// ===========================================
+// DİNAMİK STATİK SAYFA YÖNETİMİ
+// ===========================================
+
+// "Hakkımızda", "Gizlilik" gibi özel sayfaları yönetir
+model DynamicPage {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  title     String   // Sayfa Başlığı
+  slug      String   @unique // URL (örn: "hakkimizda", "gizlilik-politikasi")
+  
+  // Esnek İçerik Alanı (İsteğiniz üzerine: açıklama1, 2, 3, görseller vb.)
+  // Bu alanda, frontend'den gelen bir block editor (örn: Editor.js) 
+  // JSON verisi string olarak saklanacaktır.
+  // Bu JSON, frontend'de "açıklama", "resim", "liste", "başlık" 
+  // bloklarına dönüştürülür.
+  layoutJson String?  
+  
+  // İlişki: Bu sayfaya özel slider (Anasayfadan farklı)
+  sliderImages DynamicPageSliderImage[]
+
+  // İlişki: Bu sayfanın linki footer'da gösterilsin mi? (Opsiyonel)
+  // Veya bu bilgiyi SiteSettings->footerLinksJson'dan yönetebilirsiniz.
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Dinamik Sayfalara ait özel slider görselleri
+model DynamicPageSliderImage {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  imageUrl  String
+  caption   String?
+  order     Int      @default(0)
+  
+  // İlişki: Hangi sayfaya ait?
+  pageId    String      @db.ObjectId
+  page      DynamicPage @relation(fields: [pageId], references: [id], onDelete: Cascade)
+}
+
+// ===========================================
+// CANLI DESTEK SOHBET MODELLERİ
+// ===========================================
+
+model ChatRoom {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  
+  // İlişki: Bu sohbet odası hangi kullanıcıya ait?
+  userId    String     @db.ObjectId
+  user      User       @relation(fields: [userId], references: [id])
+  
+  // İlişki: Bu odadaki mesajlar
+  messages  ChatMessage[]
+  
+  status    String     @default("open") // "open" (Açık), "closed" (Admin tarafından kapatıldı)
+  
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@unique([userId, status]) // Bir kullanıcının sadece bir "open" odası olabilir
+}
+
+model ChatMessage {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  
+  // İlişki: Hangi odaya ait?
+  roomId    String   @db.ObjectId
+  room      ChatRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  
+  // İlişki: Mesajı kim gönderdi?
+  authorId  String   @db.ObjectId
+  author    User     @relation(fields: [authorId], references: [id])
+  
+  authorRole String  // "user" veya "admin" (Mesajın kime ait olduğunu kolayca göstermek için)
+  
+  content   String   // Mesaj içeriği
+  isRead    Boolean  @default(false)
   
   createdAt DateTime @default(now())
 }

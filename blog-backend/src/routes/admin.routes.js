@@ -6,7 +6,9 @@ const {
     updateOrderStatus,
     updatePaymentStatus,
     getAllUsers,
-    updateUserRole
+    updateUserRole,
+    getOpenChatRooms,
+    getChatHistory,
 } = require('../controllers/admin.controller');
 const { verifyToken, isAdmin } = require('../middleware/auth.middleware');
 
@@ -25,5 +27,8 @@ router.put('/orders/:id/payment', updatePaymentStatus);
 // --- Kullanıcı Yönetim Rotaları ---
 router.get('/users', getAllUsers);
 router.put('/users/:id/role', updateUserRole);
+
+router.get('/chats', getOpenChatRooms);
+router.get('/chats/:roomId', getChatHistory);
 
 module.exports = router;

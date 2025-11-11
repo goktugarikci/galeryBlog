@@ -12,6 +12,7 @@ const sliderRoutes = require('./slider.routes');   // <-- YENİ İMPORT
 const contactRoutes = require('./contact.routes'); // <-- YENİ İMPORT
 const adminRoutes = require('./admin.routes'); // <-- YENİ İMPORT
 const notificationRoutes = require('./notification.routes'); // <-- YENİ İMPORT
+const pageRoutes = require('./page.routes'); // <-- YENİ İMPORT
 
 // Rotaları prefix'leriyle kullan
 router.use('/auth', authRoutes); 
@@ -24,5 +25,6 @@ router.use('/slider', sliderRoutes);   // <-- YENİ EKLEME
 router.use('/contact', contactRoutes); // <-- YENİ EKLEME
 router.use('/admin', adminRoutes);
 router.use('/notifications', notificationRoutes); // <-- YENİ EKLEME
+router.use('/pages', pageRoutes); // <-- YENİ EKLEME ( /api/pages/... )
 
 module.exports = router;

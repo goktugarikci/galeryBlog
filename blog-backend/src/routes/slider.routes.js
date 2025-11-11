@@ -5,7 +5,7 @@ const {
     getAllSliders, 
     updateSlider, 
     deleteSlider 
-} = require('../../controllers/slider.controller');
+} = require('../controllers/slider.controller');
 const { verifyToken, isAdmin } = require('../middleware/auth.middleware');
 
 /**

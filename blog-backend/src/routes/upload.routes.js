@@ -1,6 +1,6 @@
 // src/routes/upload.routes.js
 const router = require('express').Router();
-const { uploadSingleImage, uploadMultipleImages } = require('../../controllers/upload.controller');
+const { uploadSingleImage, uploadMultipleImages } = require('../controllers/upload.controller');
 const upload = require('../middleware/upload.middleware');
 const { verifyToken } = require('../middleware/auth.middleware');
 

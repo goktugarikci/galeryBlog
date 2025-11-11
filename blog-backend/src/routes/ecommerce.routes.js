@@ -7,7 +7,7 @@ const {
     removeCartItem,
     createOrder,        // YENİ
     getOrderHistory     // YENİ
-} = require('../../controllers/ecommerce.controller');
+} = require('../controllers/ecommerce.controller');
 const { verifyToken } = require('../middleware/auth.middleware');
 
 // --- SEPET ROTALARI ---
