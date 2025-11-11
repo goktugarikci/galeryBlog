@@ -1,5 +1,5 @@
 // =========================================================
-// === TAM PROJE VERİTABANI ŞEMASI (prisma/schema.prisma) ===
+// === TAM PROJE VERİTABANI ŞEMASI (NİHAİ - ÇOKLU DİL) ===
 // =========================================================
 
 // 1. Jeneratör ve Veri Kaynağı Yapılandırması
@@ -9,7 +9,7 @@ generator client {
 
 datasource db {
   provider = "mongodb"
-  url      = env("DATABASE_URL") // .env dosyanızdan alınır
+  url      = env("DATABASE_URL")
 }
 
 
@@ -19,31 +19,31 @@ datasource db {
 
 model User {
   id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  email     String   @unique // Giriş için
-  password  String   // Hash'lenmiş şifre
+  email     String   @unique
+  password  String
   firstName String
   lastName  String
   phone     String?
-  address   String?  // Varsayılan teslimat adresi
+  address   String?
   role      String   @default("user") // "user" veya "admin"
 
   // --- İlişkiler ---
-  posts         Post[]           // Blog yazıları
-  notifications Notification[]   // Kullanıcı bildirimleri
-  cartItems     CartItem[]       // Kullanıcının sepeti
-  orders        Order[]          // Kullanıcinin siparişleri
+  posts         Post[]
+  notifications Notification[]
+  cartItems     CartItem[]
+  orders        Order[]
+  
+  // Canlı Destek İlişkileri (Hata düzeltmesi)
+  chatRooms     ChatRoom[]
+  chatMessages  ChatMessage[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
-  chatRooms     ChatRoom[]       // Bir kullanıcının sohbet odaları
-  chatMessages  ChatMessage[]    // Bir kullanıcının gönderdiği mesajlar
-  
 }
 
 
 // ===========================================
-// SİTE GENEL AYARLARI (SEO, TEMA VE MODLAR)
+// SİTE GENEL AYARLARI (SEO, TEMA, MODLAR)
 // ===========================================
 
 model SiteSettings {
@@ -51,67 +51,60 @@ model SiteSettings {
   
   // --- Genel Ayarlar ---
   siteName     String   @default("Benim Sitem")
-  logoUrl      String?  // Logo (Dosya yükleme ile gelen URL)
-  navLinksJson String?  // Navbar linkleri (JSON string)
+  logoUrl      String?
   footerText   String   @default("© 2025 Tüm hakları saklıdır.")
-  homeLayout   String   @default("grid") // Anasayfa düzeni ("list" veya "grid")
+  homeLayout   String   @default("grid")
+
+  // --- Dil Ayarı ---
+  enableEnglish   Boolean  @default(false) // false = Sadece TR, true = TR ve EN aktif
+
+  // --- Düzen Ayarları ---
+  navLayout       String   @default("top") // "top" (Üstte) veya "left" (Solda)
+  navLinksJson    String?  // Üst menü linkleri (JSON)
+  footerLinksJson String?  // Footer linkleri (JSON - örn: Gizlilik)
 
   // --- E-Ticaret Modu Ayarları ---
-  eCommerceEnabled      Boolean @default(true) // true = Sepet/Sipariş aktif, false = Sadece WhatsApp
-  whatsAppNumber        String? // Uluslararası formatta numara (örn: 905xxxxxxxxx)
+  eCommerceEnabled      Boolean @default(true) // true = Sepet, false = WhatsApp
+  whatsAppNumber        String?
   whatsAppMessageTemplate String? @default("Merhaba, [ÜRÜN_ADI] ürünü hakkında bilgi almak istiyorum.")
 
-  // --- TEMA RENK AYARLARI (Sarı & Siyah Tema Varsayılanı) ---
-  
-  // Ana Tema Renkleri
-  colorBackground String   @default("#000000") // Ana Arka Plan (Siyah)
-  colorText       String   @default("#FFFFFF") // Ana Metin Rengi (Beyaz)
-  colorPrimary    String   @default("#FFD700") // Ana Vurgu Rengi (Sarı)
-  colorSecondary  String   @default("#343a40") // İkincil Vurgu (Koyu Gri/Siyah)
-
-  // E-Ticaret Buton Renkleri
-  // "Sepete Ekle" Butonu (Varsayılan: Sarı zemin, Siyah yazı)
-  colorButtonAddToCart       String   @default("#FFD700")
-  colorButtonAddToCartText   String   @default("#000000")
-
-  // "Hemen Satın Al" Butonu (Varsayılan: Beyaz zemin, Siyah yazı)
-  colorButtonBuyNow          String   @default("#FFFFFF")
-  colorButtonBuyNowText      String   @default("#000000")
+  // --- TEMA RENK AYARLARI (Sarı & Siyah Tema) ---
+  colorBackground String   @default("#000000")
+  colorText       String   @default("#FFFFFF")
+  colorPrimary    String   @default("#FFD700")
+  colorSecondary  String   @default("#343a40")
+  colorButtonAddToCart     String   @default("#FFD700")
+  colorButtonAddToCartText String   @default("#000000")
+  colorButtonBuyNow        String   @default("#FFFFFF")
+  colorButtonBuyNowText    String   @default("#000000")
 
   // --- Global SEO Ayarları ---
-  seoTitle        String?  // Global site başlığı
-  seoDescription  String?  // Global meta description
-  seoKeywords     String?  // Global meta keywords
-  seoAuthor       String?  // Meta author tag
-
-// --- YENİ ALAN: Navbar Düzeni ---
-  navLayout    String   @default("top") // "top" (Üstte) veya "left" (Solda)
-  
-  // --- YENİ ALAN: Footer Düzeni (Linkler) ---
-  // Adminin "Gizlilik" veya "İletişim" linklerini eklemesi için.
-  // Örn: [{"text": "Gizlilik Politikası", "url": "/gizlilik-politikasi"}]
-  footerLinksJson String?
-
+  seoTitle        String?
+  seoDescription  String?
+  seoKeywords     String?
+  seoAuthor       String?
 }
 
-// Anasayfa Slider görselleri
+// Anasayfa Slider görselleri (Çoklu Dil)
 model SliderImage {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  imageUrl  String
-  caption   String?
-  linkUrl   String?
-  order     Int      @default(0)
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  imageUrl    String
+  caption_tr  String?  // TR Başlık
+  caption_en  String?  // EN Başlık
+  linkUrl     String?
+  order       Int      @default(0)
 }
 
 
 // ===========================================
-// BLOG İÇERİK MODELLERİ
+// BLOG İÇERİK MODELLERİ (Çoklu Dil)
 // ===========================================
 
 // Blog Ana Kategorileri
 model Category {
   id            String        @id @default(auto()) @map("_id") @db.ObjectId
-  name          String        @unique
+  name_tr       String        @unique // TR Kategori Adı
+  name_en       String?       // EN Kategori Adı
   subcategories SubCategory[]
   posts         Post[]
 }
@@ -119,20 +112,29 @@ model Category {
 // Blog Alt Kategorileri
 model SubCategory {
   id         String   @id @default(auto()) @map("_id") @db.ObjectId
-  name       String
+  name_tr    String   // TR Alt Kategori Adı
+  name_en    String?  // EN Alt Kategori Adı
   categoryId String   @db.ObjectId
   category   Category @relation(fields: [categoryId], references: [id])
   posts      Post[]
-  @@unique([name, categoryId])
+  
+  @@unique([name_tr, categoryId])
 }
 
 // Blog Yazıları
 model Post {
   id            String       @id @default(auto()) @map("_id") @db.ObjectId
-  title         String
-  content       String
+  
+  // --- Çoklu Dil Alanları ---
+  title_tr      String
+  title_en      String?
+  content_tr    String
+  content_en    String?
+  excerpt_tr    String?
+  excerpt_en    String?
+  // --- Bitiş ---
+
   featuredImage String?
-  excerpt       String?
   
   authorId      String       @db.ObjectId
   author        User         @relation(fields: [authorId], references: [id])
@@ -148,54 +150,60 @@ model Post {
 
 
 // ===========================================
-// ÜRÜN GALERİ MODELLERİ (E-TİCARET TEMELİ)
+// ÜRÜN GALERİ MODELLERİ (Çoklu Dil)
 // ===========================================
 
 // Ürün Ana Kategorisi
 model ProductCategory {
-  id            String               @id @default(auto()) @map("_id") @db.ObjectId
-  name          String               @unique
-  description   String?
-  subCategories ProductSubCategory[] 
+  id               String               @id @default(auto()) @map("_id") @db.ObjectId
+  name_tr          String               @unique
+  name_en          String?
+  description_tr   String?
+  description_en   String?
+  subCategories    ProductSubCategory[] 
 }
 
 // Ürün Alt Kategorisi
 model ProductSubCategory {
-  id          String    @id @default(auto()) @map("_id") @db.ObjectId
-  name        String
-  description String?
+  id               String    @id @default(auto()) @map("_id") @db.ObjectId
+  name_tr          String
+  name_en          String?
+  description_tr   String?
+  description_en   String?
   
-  categoryId  String          @db.ObjectId
-  category    ProductCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  categoryId       String          @db.ObjectId
+  category         ProductCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   
-  products    Product[]
+  products         Product[]
   
-  @@unique([name, categoryId]) 
+  @@unique([name_tr, categoryId]) 
 }
 
-// Ürün Modeli (İndirim Alanları Dahil)
+// Ürün Modeli
 model Product {
   id               String    @id @default(auto()) @map("_id") @db.ObjectId
-  name             String
-  description      String
-  shortDescription String?
   
-  // 'price' alanı son kullanıcı fiyatını (indirimli fiyat) tutar
-  price            Float     
-  
-  // 'originalPrice' alanı, indirim varsa üstü çizili fiyatı tutar
-  originalPrice    Float?    
-  
-  // 'discountLabel' alanı, "10% İndirim" gibi bir etiketi tutar
-  discountLabel    String?   
-  
-  sku              String?   @unique // Stok kodu
-  stock            Int       @default(0)
-  status           String    @default("draft") // "published", "draft"
+  // --- Çoklu Dil Alanları ---
+  name_tr             String
+  name_en             String?
+  description_tr      String
+  description_en      String?
+  shortDescription_tr String?
+  shortDescription_en String?
+  // --- Bitiş ---
 
+  // --- Fiyat ve Kampanya Alanları ---
+  price            Float     // Nihai (indirimli) fiyat
+  originalPrice    Float?    // Üstü çizili (indirim öncesi) fiyat
+  discountLabel    String?   // "%10 İndirim" etiketi
+  
+  sku              String?   @unique
+  stock            Int       @default(0)
+  status           String    @default("draft")
+
+  // --- İlişkiler ---
   subCategoryId String?             @db.ObjectId
   subCategory   ProductSubCategory? @relation(fields: [subCategoryId], references: [id])
-  
   galleryImages    ProductImage[]
   cartItems        CartItem[]
 
@@ -207,10 +215,9 @@ model Product {
 model ProductImage {
   id        String   @id @default(auto()) @map("_id") @db.ObjectId
   imageUrl  String
-  altText   String?
+  altText   String?  // SEO için (Bunu tek dil tuttuk)
   order     Int      @default(0)
   
-  // İlişki: Hangi ürüne ait olduğu
   productId String   @db.ObjectId
   product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
 }
@@ -220,59 +227,43 @@ model ProductImage {
 // E-TİCARET MODELLERİ (SEPET VE SİPARİŞ)
 // ===========================================
 
-// Kullanıcı Sepeti Öğesi
 model CartItem {
   id        String @id @default(auto()) @map("_id") @db.ObjectId
-  
   userId    String   @db.ObjectId
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
   productId String   @db.ObjectId
   product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  
   quantity  Int      @default(1)
-
   createdAt DateTime @default(now())
   
-  @@unique([userId, productId]) // Kullanıcı sepetinde bir üründen 1 satır olabilir
+  @@unique([userId, productId])
 }
 
-// Sipariş
 model Order {
   id            String   @id @default(auto()) @map("_id") @db.ObjectId
-  
   userId        String   @db.ObjectId
   user          User     @relation(fields: [userId], references: [id])
-  
-  items         OrderItem[] // Siparişin içindeki ürünler
-  
-  totalAmount   Float    // Toplam tutar
-  status        String   @default("pending") // "pending", "shipped", "completed", "cancelled"
-  
-  // Ödeme (Kapıda, Havale vb.)
-  paymentMethod String   // "kapida_nakit", "havale", "kapida_havale"
-  paymentStatus String   @default("unpaid") // "unpaid", "paid", "pending_confirmation" (Havale için)
-  
-  // Teslimat
-  shippingAddress String   // Sipariş anındaki adres
-  customerName    String   // Sipariş anındaki isim
+  items         OrderItem[]
+  totalAmount   Float
+  status        String   @default("pending")
+  paymentMethod String   
+  paymentStatus String   @default("unpaid")
+  shippingAddress String
+  customerName    String
   customerPhone   String?
-
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 }
 
-// Sipariş Öğesi (Sipariş anındaki ürünün kopyası/anlık görüntüsü)
 model OrderItem {
   id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  
   orderId   String   @db.ObjectId
   order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
   
-  // Ürün Bilgisi (Anlık Görüntü)
-  productId       String   // Referans ID
-  productName     String   // O anki ürün adı
-  priceAtPurchase Float    // O anki fiyatı
+  // Anlık Görüntü (Snapshot)
+  productId       String
+  productName     String   // Sipariş anındaki ürün adı (Çoklu dilden hangisi seçildiyse)
+  priceAtPurchase Float
   quantity        Int
 }
 
@@ -281,7 +272,7 @@ model OrderItem {
 // YÖNETİM VE İLETİŞİM MODELLERİ
 // ===========================================
 
-// İletişim Formu Gönderileri
+// İletişim Formu (Kullanıcıdan geldiği için tek dil)
 model ContactSubmission {
   id        String   @id @default(auto()) @map("_id") @db.ObjectId
   firstName String
@@ -295,59 +286,46 @@ model ContactSubmission {
   createdAt DateTime @default(now())
 }
 
-// Kullanıcı Bildirimleri
+// Bildirimler (Sistem tarafından oluşturulduğu için tek dil)
 model Notification {
   id        String   @id @default(auto()) @map("_id") @db.ObjectId
   title     String
   message   String
   isRead    Boolean  @default(false)
-  link      String?  // Tıklanabilir link
-  type      String?  // "duyuru", "indirim" vb.
-
+  link      String?
+  type      String?
   userId    String   @db.ObjectId
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
   createdAt DateTime @default(now())
 }
 
-// ===========================================
-// DİNAMİK STATİK SAYFA YÖNETİMİ
-// ===========================================
-
-// "Hakkımızda", "Gizlilik" gibi özel sayfaları yönetir
+// Dinamik Sayfalar (Hakkımızda vb. - Çoklu Dil)
 model DynamicPage {
   id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  title     String   // Sayfa Başlığı
-  slug      String   @unique // URL (örn: "hakkimizda", "gizlilik-politikasi")
+  title_tr  String
+  title_en  String?
+  slug      String   @unique // (örn: "hakkimizda")
   
-  // Esnek İçerik Alanı (İsteğiniz üzerine: açıklama1, 2, 3, görseller vb.)
-  // Bu alanda, frontend'den gelen bir block editor (örn: Editor.js) 
-  // JSON verisi string olarak saklanacaktır.
-  // Bu JSON, frontend'de "açıklama", "resim", "liste", "başlık" 
-  // bloklarına dönüştürülür.
-  layoutJson String?  
+  // Esnek içerik blokları (JSON formatında)
+  layoutJson_tr String?
+  layoutJson_en String?
   
-  // İlişki: Bu sayfaya özel slider (Anasayfadan farklı)
   sliderImages DynamicPageSliderImage[]
-
-  // İlişki: Bu sayfanın linki footer'da gösterilsin mi? (Opsiyonel)
-  // Veya bu bilgiyi SiteSettings->footerLinksJson'dan yönetebilirsiniz.
-  
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }
 
-// Dinamik Sayfalara ait özel slider görselleri
+// Dinamik Sayfalara ait özel slider (Çoklu Dil)
 model DynamicPageSliderImage {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  imageUrl  String
-  caption   String?
-  order     Int      @default(0)
-  
-  // İlişki: Hangi sayfaya ait?
-  pageId    String      @db.ObjectId
-  page      DynamicPage @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  imageUrl   String
+  caption_tr String?
+  caption_en String?
+  order      Int      @default(0)
+  pageId     String      @db.ObjectId
+  page       DynamicPage @relation(fields: [pageId], references: [id], onDelete: Cascade)
 }
+
 
 // ===========================================
 // CANLI DESTEK SOHBET MODELLERİ
@@ -355,37 +333,24 @@ model DynamicPageSliderImage {
 
 model ChatRoom {
   id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  
-  // İlişki: Bu sohbet odası hangi kullanıcıya ait?
   userId    String     @db.ObjectId
   user      User       @relation(fields: [userId], references: [id])
-  
-  // İlişki: Bu odadaki mesajlar
   messages  ChatMessage[]
-  
-  status    String     @default("open") // "open" (Açık), "closed" (Admin tarafından kapatıldı)
-  
+  status    String     @default("open")
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
 
-  @@unique([userId, status]) // Bir kullanıcının sadece bir "open" odası olabilir
+  @@unique([userId, status])
 }
 
 model ChatMessage {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  
-  // İlişki: Hangi odaya ait?
-  roomId    String   @db.ObjectId
-  room      ChatRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
-  
-  // İlişki: Mesajı kim gönderdi?
-  authorId  String   @db.ObjectId
-  author    User     @relation(fields: [authorId], references: [id])
-  
-  authorRole String  // "user" veya "admin" (Mesajın kime ait olduğunu kolayca göstermek için)
-  
-  content   String   // Mesaj içeriği
-  isRead    Boolean  @default(false)
-  
-  createdAt DateTime @default(now())
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  roomId     String   @db.ObjectId
+  room       ChatRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  authorId   String   @db.ObjectId
+  author     User     @relation(fields: [authorId], references: [id])
+  authorRole String   // "user" veya "admin"
+  content    String
+  isRead     Boolean  @default(false)
+  createdAt  DateTime @default(now())
 }

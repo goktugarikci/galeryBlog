@@ -1,8 +1,11 @@
 // src/controllers/ecommerce.controller.js
+// DİKKAT: Yolu ../config/prisma olarak düzelttiğinizden emin olun
 const prisma = require('../config/prisma');
 
 // ===================================
 // SEPET FONKSİYONLARI
+// (Not: Bu fonksiyonlar çoğunlukla ID ve stok üzerinden çalışır,
+// dil güncellemesinden doğrudan etkilenmezler.)
 // ===================================
 
 // GET /api/shop/cart - Kullanıcının sepetini getir
@@ -17,6 +20,8 @@ const getCart = async (req, res) => {
                 galleryImages: { take: 1, orderBy: { order: 'asc' } }
             }
         } 
+        // Product'ı tam olarak dahil ettiğimiz için (ilişkili tüm _tr/_en alanları)
+        // frontend'de dil seçimi yapılabilir.
       },
       orderBy: { createdAt: 'desc' }
     });
@@ -108,7 +113,7 @@ const removeCartItem = async (req, res) => {
 };
 
 // ===================================
-// SİPARİŞ (CHECKOUT) FONKSİYONLARI
+// SİPARİŞ (CHECKOUT) FONKSİYONLARI (ÇOKLU DİL GÜNCELLENDİ)
 // ===================================
 
 /**
@@ -118,21 +123,20 @@ const removeCartItem = async (req, res) => {
 const createOrder = async (req, res) => {
     const userId = req.user.id;
     const { 
-        paymentMethod,    // "kapida_nakit", "havale", "kapida_havale"
-        shippingAddress,  // "Adres bilgisi..."
-        customerName,     // "Ad Soyad"
-        customerPhone     // "05xxxxxxxxx"
+        paymentMethod,    // "kapida_nakit", "havale"
+        shippingAddress,
+        customerName,
+        customerPhone,
+        lang // YENİ: Frontend'in hangi dilde olduğunu al (örn: "en" veya "tr")
     } = req.body;
 
-    // 1. Girdi kontrolü
     if (!paymentMethod || !shippingAddress || !customerName || !customerPhone) {
         return res.status(400).json({ error: 'Ödeme yöntemi, teslimat adresi, isim ve telefon zorunludur.' });
     }
 
-    // 2. Kullanıcının sepetini ve ürün detaylarını (stok/fiyat) al
     const cartItems = await prisma.cartItem.findMany({
         where: { userId: userId },
-        include: { product: true } // Ürünün anlık fiyatı ve stoğu için
+        include: { product: true } // Ürünün anlık fiyatı, stoğu ve DİL alanları için
     });
 
     if (cartItems.length === 0) {
@@ -140,82 +144,73 @@ const createOrder = async (req, res) => {
     }
 
     try {
-        // 3. Veritabanı Transaction (Hepsi-veya-hiçbiri)
-        // Sipariş oluşturulacak, stok düşülecek, sepet temizlenecek.
         const newOrder = await prisma.$transaction(async (tx) => {
             
-            // 3a. Stokları kontrol et ve toplam tutarı hesapla
             let totalAmount = 0;
-            const orderItemsData = []; // Sipariş öğelerini (anlık görüntü) hazırla
+            const orderItemsData = [];
 
             for (const item of cartItems) {
                 const product = item.product;
                 if (product.stock < item.quantity) {
-                    // Eğer stok yetersizse, transaction'ı iptal et
-                    throw new Error(`Yetersiz stok: ${product.name}`);
+                    throw new Error(`Yetersiz stok: ${product.name_tr}`); // Hata mesajı için TR adı kullan
                 }
 
                 totalAmount += product.price * item.quantity;
                 
+                // === DİL GÜNCELLEMESİ ===
+                // Sipariş anındaki ürün adını, kullanıcının o an seçtiği dile göre belirle
+                // Eğer 'en' seçiliyse ve 'name_en' varsa onu al, yoksa 'name_tr' al.
+                const productNameForOrder = (lang === 'en' && product.name_en) 
+                                            ? product.name_en 
+                                            : product.name_tr;
+                // === GÜNCELLEME SONU ===
+
                 orderItemsData.push({
                     productId: product.id,
-                    productName: product.name, // O anki adı
-                    priceAtPurchase: product.price, // O anki fiyatı
+                    productName: productNameForOrder, // Güncellenmiş alan
+                    priceAtPurchase: product.price,
                     quantity: item.quantity
                 });
             }
 
-            // 3b. Ödeme durumunu belirle
-            // 'havale' ise admin onayı bekler, 'kapida' ise 'unpaid'
-            const paymentStatus = (paymentMethod === 'havale') 
-                                    ? 'pending_confirmation' 
-                                    : 'unpaid';
+            const paymentStatus = (paymentMethod === 'havale') ? 'pending_confirmation' : 'unpaid';
 
-            // 3c. Siparişi ve ilişkili sipariş öğelerini oluştur
             const order = await tx.order.create({
                 data: {
                     userId: userId,
                     totalAmount: totalAmount,
-                    status: 'pending', // Sipariş durumu (Yeni)
+                    status: 'pending',
                     paymentMethod: paymentMethod,
                     paymentStatus: paymentStatus,
                     shippingAddress: shippingAddress,
                     customerName: customerName,
                     customerPhone: customerPhone,
                     items: {
-                        create: orderItemsData // 'OrderItem' kayıtlarını oluştur
+                        create: orderItemsData // OrderItem kayıtlarını oluştur
                     }
                 },
-                include: {
-                    items: true // Oluşturulan siparişi item'larıyla döndür
-                }
+                include: { items: true }
             });
 
-            // 3d. Stokları Güncelle (Stoktan Düş)
+            // Stokları Düş
             for (const item of cartItems) {
                 await tx.product.update({
                     where: { id: item.productId },
-                    data: {
-                        stock: {
-                            decrement: item.quantity // Stoğu azalt
-                        }
-                    }
+                    data: { stock: { decrement: item.quantity } }
                 });
             }
 
-            // 3e. Kullanıcının sepetini temizle
+            // Sepeti Temizle
             await tx.cartItem.deleteMany({
                 where: { userId: userId }
             });
 
-            return order; // Transaction başarılı, yeni siparişi döndür
+            return order;
         });
 
-        // 4. Başarılı yanıt
         res.status(201).json(newOrder);
 
     } catch (error) {
-        // 5. Hata yönetimi (Özellikle stok hatası)
         if (error.message.startsWith('Yetersiz stok')) {
             return res.status(400).json({ error: error.message });
         }
@@ -227,6 +222,8 @@ const createOrder = async (req, res) => {
 /**
  * GET /api/shop/orders
  * Kullanıcının kendi sipariş geçmişini getirir.
+ * (Bu fonksiyon dil güncellemesinden etkilenmez, çünkü sipariş anındaki
+ * (OrderItem) veriyi (productName) zaten doğru dilde kaydettik.)
  */
 const getOrderHistory = async (req, res) => {
     try {
@@ -249,6 +246,6 @@ module.exports = {
   addToCart,
   updateCartItemQuantity,
   removeCartItem,
-  createOrder, // YENİ
-  getOrderHistory // YENİ
+  createOrder,
+  getOrderHistory
 };

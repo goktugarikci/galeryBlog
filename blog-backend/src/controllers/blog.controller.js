@@ -1,22 +1,23 @@
 // src/controllers/blog.controller.js
-const prisma = require('../config/prisma');
+const prisma = require('../config/prisma'); // DİKKAT: Yolu ../config/prisma olarak düzeltin
 
 // ===================================
-// BLOG KATEGORİLERİ (Category)
+// BLOG KATEGORİLERİ (Çoklu Dil)
 // ===================================
 
-// POST /api/blog/categories
 const createCategory = async (req, res) => {
   try {
-    const { name } = req.body;
-    const category = await prisma.category.create({ data: { name } });
+    const { name_tr, name_en } = req.body;
+    if (!name_tr) {
+        return res.status(400).json({ error: "Kategori adı (name_tr) zorunludur." });
+    }
+    const category = await prisma.category.create({ data: { name_tr, name_en } });
     res.status(201).json(category);
   } catch (error) {
     res.status(500).json({ error: 'Kategori oluşturulamadı: ' + error.message });
   }
 };
 
-// GET /api/blog/categories
 const getAllCategories = async (req, res) => {
   try {
     const categories = await prisma.category.findMany({
@@ -28,14 +29,13 @@ const getAllCategories = async (req, res) => {
   }
 };
 
-// PUT /api/blog/categories/:id
 const updateCategory = async (req, res) => {
     try {
         const { id } = req.params;
-        const { name } = req.body;
+        const { name_tr, name_en } = req.body;
         const updatedCategory = await prisma.category.update({
             where: { id: id },
-            data: { name }
+            data: { name_tr, name_en }
         });
         res.json(updatedCategory);
     } catch (error) {
@@ -43,13 +43,9 @@ const updateCategory = async (req, res) => {
     }
 };
 
-// DELETE /api/blog/categories/:id
 const deleteCategory = async (req, res) => {
     try {
-        const { id } = req.params;
-        // Not: İlişkili alt kategoriler varsa silme işlemi hata verebilir.
-        // Gerçek bir uygulamada önce alt kategorileri silmek veya ayırmak gerekir.
-        await prisma.category.delete({ where: { id: id } });
+        await prisma.category.delete({ where: { id: req.params.id } });
         res.status(200).json({ message: 'Kategori başarıyla silindi.' });
     } catch (error) {
         res.status(500).json({ error: 'Kategori silinemedi: ' + error.message });
@@ -57,15 +53,17 @@ const deleteCategory = async (req, res) => {
 };
 
 // ===================================
-// BLOG ALT KATEGORİLERİ (SubCategory)
+// BLOG ALT KATEGORİLERİ (Çoklu Dil)
 // ===================================
 
-// POST /api/blog/subcategories
 const createSubCategory = async (req, res) => {
   try {
-    const { name, categoryId } = req.body;
+    const { name_tr, name_en, categoryId } = req.body;
+    if (!name_tr || !categoryId) {
+        return res.status(400).json({ error: 'Alt kategori adı (name_tr) ve ana kategori ID (categoryId) zorunludur.' });
+    }
     const subCategory = await prisma.subCategory.create({
-      data: { name, categoryId }
+      data: { name_tr, name_en, categoryId }
     });
     res.status(201).json(subCategory);
   } catch (error) {
@@ -73,25 +71,30 @@ const createSubCategory = async (req, res) => {
   }
 };
 
-// (getAllSubCategories, updateSubCategory, deleteSubCategory buraya eklenebilir...)
-
-
 // ===================================
-// BLOG YAZILARI (Post)
+// BLOG YAZILARI (Çoklu Dil)
 // ===================================
 
-// POST /api/blog/posts
 const createPost = async (req, res) => {
   try {
-    const { title, content, featuredImage, excerpt, categoryId, subCategoryId } = req.body;
-    const authorId = req.user.id; // Yazarın ID'si auth middleware'inden (token)
+    const { 
+        title_tr, title_en, 
+        content_tr, content_en, 
+        excerpt_tr, excerpt_en,
+        featuredImage, categoryId, subCategoryId 
+    } = req.body;
+    const authorId = req.user.id;
+
+    if (!title_tr || !content_tr) {
+        return res.status(400).json({ error: 'TR Başlık (title_tr) ve TR İçerik (content_tr) zorunludur.' });
+    }
 
     const newPost = await prisma.post.create({
       data: {
-        title,
-        content,
-        featuredImage, // Bu URL, /api/upload'dan alınmış olmalı
-        excerpt,
+        title_tr, title_en,
+        content_tr, content_en,
+        excerpt_tr, excerpt_en,
+        featuredImage,
         authorId,
         categoryId,
         subCategoryId
@@ -103,16 +106,14 @@ const createPost = async (req, res) => {
   }
 };
 
-// GET /api/blog/posts (Public)
 const getAllPosts = async (req, res) => {
   try {
-    // (Filtreleme eklenebilir: ?category=id veya ?author=id)
     const posts = await prisma.post.findMany({
       orderBy: { createdAt: 'desc' },
       include: {
-        author: { select: { firstName: true, lastName: true } }, // Yazarın adını al
-        category: { select: { name: true } }, // Kategori adını al
-        subCategory: { select: { name: true } }
+        author: { select: { firstName: true, lastName: true } },
+        category: { select: { name_tr: true, name_en: true } },
+        subCategory: { select: { name_tr: true, name_en: true } }
       }
     });
     res.json(posts);
@@ -121,12 +122,10 @@ const getAllPosts = async (req, res) => {
   }
 };
 
-// GET /api/blog/posts/:id (Public)
 const getPostById = async (req, res) => {
   try {
-    const { id } = req.params;
     const post = await prisma.post.findUnique({
-      where: { id: id },
+      where: { id: req.params.id },
       include: {
         author: { select: { firstName: true, lastName: true, email: true } },
         category: true,
@@ -142,17 +141,24 @@ const getPostById = async (req, res) => {
   }
 };
 
-// PUT /api/blog/posts/:id
 const updatePost = async (req, res) => {
     try {
         const { id } = req.params;
-        const { title, content, featuredImage, excerpt, categoryId, subCategoryId } = req.body;
+        const { 
+            title_tr, title_en, 
+            content_tr, content_en, 
+            excerpt_tr, excerpt_en,
+            featuredImage, categoryId, subCategoryId 
+        } = req.body;
         
-        // (Opsiyonel: Sadece admin VEYA yazının sahibi güncelleyebilir kontrolü)
-
         const updatedPost = await prisma.post.update({
             where: { id: id },
-            data: { title, content, featuredImage, excerpt, categoryId, subCategoryId }
+            data: { 
+                title_tr, title_en, 
+                content_tr, content_en, 
+                excerpt_tr, excerpt_en,
+                featuredImage, categoryId, subCategoryId
+            }
         });
         res.json(updatedPost);
     } catch (error) {
@@ -160,11 +166,9 @@ const updatePost = async (req, res) => {
     }
 };
 
-// DELETE /api/blog/posts/:id
 const deletePost = async (req, res) => {
     try {
-        const { id } = req.params;
-        await prisma.post.delete({ where: { id: id } });
+        await prisma.post.delete({ where: { id: req.params.id } });
         res.status(200).json({ message: 'Yazı başarıyla silindi.' });
     } catch (error) {
         res.status(500).json({ error: 'Yazı silinemedi: ' + error.message });

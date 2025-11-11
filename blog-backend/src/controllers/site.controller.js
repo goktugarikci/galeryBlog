@@ -1,18 +1,12 @@
 // src/controllers/site.controller.js
-const prisma = require('../config/prisma'); // Yolu ../config/prisma olarak düzeltin
+const prisma = require('../config/prisma'); // DİKKAT: Yolu ../config/prisma olarak düzeltin
 
 // Ayarları getiren veya yoksa oluşturan yardımcı fonksiyon
 const getOrCreateSettings = async () => {
   let settings = await prisma.siteSettings.findFirst();
   if (!settings) {
-    // Veritabanında hiç ayar yoksa, varsayılan şema değerleriyle ilk ayarı oluştur.
     console.log('İlk site ayarları oluşturuluyor...');
-    settings = await prisma.siteSettings.create({
-      data: {
-        // schema.prisma'daki @default değerleri
-        // (örn: Sarı/Siyah tema) otomatik olarak uygulanacaktır.
-      }
-    });
+    settings = await prisma.siteSettings.create({ data: {} });
   }
   return settings;
 };
@@ -20,7 +14,6 @@ const getOrCreateSettings = async () => {
 /**
  * GET /api/settings
  * Tüm site ayarlarını getirir. (Public)
- * Frontend'in renkleri ve SEO'yu çekmesi için kullanılır.
  */
 const getSettings = async (req, res) => {
   try {
@@ -34,85 +27,42 @@ const getSettings = async (req, res) => {
 /**
  * PUT /api/settings
  * Site ayarlarını günceller. (Admin Korumalı)
- * Yönetici panelinden gelen verileri kaydeder.
+ * DİL AYARI EKLENDİ.
  */
 const updateSettings = async (req, res) => {
   try {
-    // Güncellenmesine izin verilen tüm alanlar
     const {
-      siteName,
-      logoUrl,
-      navLinksJson,
-      footerText,
-      homeLayout,
+      siteName, logoUrl, navLinksJson, footerText, homeLayout,
       
-      // Navbar/Footer Düzeni Alanları
-      navLayout,
-      footerLinksJson,
+      // Dil Ayarı
+      enableEnglish,
 
-      // Ana Tema Renkleri
-      colorPrimary,
-      colorSecondary,
-      colorBackground,
-      colorText,
+      // Düzen Ayarları
+      navLayout, footerLinksJson,
 
-      // E-Ticaret Buton Renkleri
-      colorButtonAddToCart,
-      colorButtonAddToCartText,
-      colorButtonBuyNow,
-      colorButtonBuyNowText,
+      // Renkler
+      colorPrimary, colorSecondary, colorBackground, colorText,
+      colorButtonAddToCart, colorButtonAddToCartText, colorButtonBuyNow, colorButtonBuyNowText,
 
       // SEO
-      seoTitle,
-      seoDescription,
-      seoKeywords,
-      seoAuthor,
+      seoTitle, seoDescription, seoKeywords, seoAuthor,
 
-      // E-ticaret Modu Alanları
-      eCommerceEnabled,
-      whatsAppNumber,
-      whatsAppMessageTemplate
-
+      // E-ticaret Modu
+      eCommerceEnabled, whatsAppNumber, whatsAppMessageTemplate
     } = req.body;
 
-    // Ayarların mevcut ID'sini al
     const currentSettings = await getOrCreateSettings();
 
     const updatedSettings = await prisma.siteSettings.update({
       where: { id: currentSettings.id },
       data: {
-        siteName,
-        logoUrl,
-        navLinksJson,
-        footerText,
-        homeLayout,
-
-        // Navbar/Footer
-        navLayout,
-        footerLinksJson,
-        
-        // Renkler
-        colorPrimary,
-        colorSecondary,
-        colorBackground,
-        colorText,
-
-        // Buton Renkleri
-        colorButtonAddToCart,
-        colorButtonAddToCartText,
-        colorButtonBuyNow,
-        colorButtonBuyNowText,
-        
-        // SEO
-        seoTitle,
-        seoDescription,
-        seoKeywords,
-        seoAuthor,
-
-        // E-Ticaret Modu
-        eCommerceEnabled,
-        whatsAppNumber,
-        whatsAppMessageTemplate
+        siteName, logoUrl, navLinksJson, footerText, homeLayout,
+        enableEnglish, // YENİ
+        navLayout, footerLinksJson, // YENİ (Dinamik sayfa modülü için)
+        colorPrimary, colorSecondary, colorBackground, colorText,
+        colorButtonAddToCart, colorButtonAddToCartText, colorButtonBuyNow, colorButtonBuyNowText,
+        seoTitle, seoDescription, seoKeywords, seoAuthor,
+        eCommerceEnabled, whatsAppNumber, whatsAppMessageTemplate // YENİ (E-ticaret modu için)
       }
     });
     
@@ -125,6 +75,5 @@ const updateSettings = async (req, res) => {
 
 module.exports = {
   getSettings,
-  updateSettings,
-  getOrCreateSettings,
+  updateSettings
 };

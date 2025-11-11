@@ -6,7 +6,7 @@ const {
     getAllPages,
     updatePage,
     deletePage
-} = require('../controllers/page.controller');
+} = require('../controllers/page.controller'); // DİKKAT: Yolu ../ olarak düzeltin
 const { verifyToken, isAdmin } = require('../middleware/auth.middleware');
 
 // --- PUBLIC ROTA (Ziyaretçi) ---

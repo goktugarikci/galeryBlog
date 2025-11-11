@@ -1,5 +1,5 @@
 // src/controllers/admin.controller.js
-const prisma = require('../config/prisma');
+const prisma = require('../config/prisma'); // DİKKAT: Yolu ../config/prisma olarak düzelttiğinizden emin olun
 
 // ===================================
 // SİPARİŞ YÖNETİMİ (ADMIN)
@@ -162,8 +162,10 @@ const updateUserRole = async (req, res) => {
     }
 };
 
+
 // ===================================
 // CANLI DESTEK YÖNETİMİ (ADMIN)
+// (Yüklediğiniz dosyada bu kısım eksikti)
 // ===================================
 
 /**
@@ -201,7 +203,7 @@ const getChatHistory = async (req, res) => {
             include: { author: { select: { firstName: true } } }
         });
         
-        // (Opsiyonel: Admin odaya girdiği anda tüm mesajları okundu say)
+        // Admin odaya girdiği anda tüm mesajları okundu say
         await prisma.chatMessage.updateMany({
             where: { roomId: roomId, isRead: false, authorRole: 'user' },
             data: { isRead: true }
@@ -213,6 +215,7 @@ const getChatHistory = async (req, res) => {
     }
 };
 
+
 module.exports = {
     getAllOrders,
     getOrderById,
@@ -220,7 +223,8 @@ module.exports = {
     updatePaymentStatus,
     getAllUsers,
     updateUserRole,
-    // YENİ EKLEMELER:
+    
+    // Eksik olan fonksiyonlar:
     getOpenChatRooms,
     getChatHistory
 };

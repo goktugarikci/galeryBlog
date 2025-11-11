@@ -1,34 +1,38 @@
 // src/controllers/page.controller.js
-const prisma = require('../config/prisma');
+const prisma = require('../config/prisma'); // DİKKAT: Yolu ../config/prisma olarak düzeltin
 
 /**
  * POST /api/pages
  * Yeni bir dinamik sayfa oluşturur (Hakkımızda vb.)
+ * ÇOKLU DİL UYUMLU.
  * Admin Korumalı.
  */
 const createPage = async (req, res) => {
     try {
         const { 
-            title, 
+            title_tr, title_en,
             slug, 
-            layoutJson, // Frontend'deki block editor'den gelen JSON string
-            sliderImages // Opsiyonel: [{ imageUrl: "url1" }, ...]
+            layoutJson_tr, layoutJson_en,
+            sliderImages // [{ imageUrl: "url1", caption_tr: "a", caption_en: "b" }, ...]
         } = req.body;
 
-        if (!title || !slug) {
-            return res.status(400).json({ error: 'Sayfa başlığı (title) ve URL (slug) zorunludur.' });
+        if (!title_tr || !slug) {
+            return res.status(400).json({ error: 'Sayfa TR başlığı (title_tr) ve URL (slug) zorunludur.' });
         }
 
         const newPage = await prisma.dynamicPage.create({
             data: {
-                title,
+                title_tr,
+                title_en,
                 slug,
-                layoutJson,
-                // İlişkili slider görsellerini de aynı anda oluştur
+                layoutJson_tr,
+                layoutJson_en,
+                // İlişkili slider görsellerini de çoklu dilde oluştur
                 sliderImages: sliderImages ? {
                     create: sliderImages.map((img, index) => ({
                         imageUrl: img.imageUrl,
-                        caption: img.caption,
+                        caption_tr: img.caption_tr,
+                        caption_en: img.caption_en,
                         order: img.order || index
                     }))
                 } : undefined
@@ -48,7 +52,7 @@ const createPage = async (req, res) => {
 /**
  * GET /api/pages/:slug
  * Bir dinamik sayfayı URL'sine (slug) göre getirir.
- * Public.
+ * Public. (Tüm dil alanlarını döndürür)
  */
 const getPageBySlug = async (req, res) => {
     try {
@@ -80,7 +84,12 @@ const getAllPages = async (req, res) => {
     try {
         const pages = await prisma.dynamicPage.findMany({
             orderBy: { createdAt: 'desc' },
-            select: { id: true, title: true, slug: true, createdAt: true } // Sadece liste için özet
+            select: { 
+                id: true, 
+                title_tr: true, // Listede TR başlığı göster
+                slug: true, 
+                createdAt: true 
+            }
         });
         res.json(pages);
     } catch (error) {
@@ -91,18 +100,27 @@ const getAllPages = async (req, res) => {
 /**
  * PUT /api/pages/:id
  * Bir dinamik sayfayı günceller.
+ * ÇOKLU DİL UYUMLU.
  * Admin Korumalı.
  */
 const updatePage = async (req, res) => {
     try {
         const { id } = req.params;
-        const { title, slug, layoutJson } = req.body;
-        // Not: Slider güncellemesi daha karmaşık olup (silme/ekleme) ayrı bir
-        // endpoint'te yapılabilir, ancak temel veriler burada güncellenir.
+        const { 
+            title_tr, title_en,
+            slug, 
+            layoutJson_tr, layoutJson_en 
+        } = req.body;
+        
+        // Not: Slider güncellemesi (silme/ekleme) ayrı bir endpoint gerektirebilir
         
         const updatedPage = await prisma.dynamicPage.update({
             where: { id: id },
-            data: { title, slug, layoutJson }
+            data: { 
+                title_tr, title_en,
+                slug, 
+                layoutJson_tr, layoutJson_en
+            }
         });
         res.json(updatedPage);
     } catch (error) {
