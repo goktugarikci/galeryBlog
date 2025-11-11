@@ -3,14 +3,13 @@ const prisma = require('../config/prisma');
 
 /**
  * POST /api/slider
- * Yeni bir slider öğesi oluşturur.
- * Admin Korumalı.
+ * ÇOKLU DİL GÜNCELLENDİ
  */
 const createSlider = async (req, res) => {
     try {
-        const { imageUrl, caption, linkUrl, order } = req.body;
+        // 'caption' yerine 'caption_tr' ve 'caption_en' alındı
+        const { imageUrl, caption_tr, caption_en, linkUrl, order } = req.body;
 
-        // imageUrl, /api/upload'dan gelen URL olmalıdır
         if (!imageUrl) {
             return res.status(400).json({ error: 'Görsel URL (imageUrl) zorunludur.' });
         }
@@ -18,7 +17,8 @@ const createSlider = async (req, res) => {
         const newSlider = await prisma.sliderImage.create({
             data: {
                 imageUrl,
-                caption,
+                caption_tr, // Güncellendi
+                caption_en, // Güncellendi
                 linkUrl,
                 order: order || 0
             }
@@ -32,15 +32,12 @@ const createSlider = async (req, res) => {
 
 /**
  * GET /api/slider
- * Tüm slider öğelerini getirir (sıralı).
- * Public.
+ * (Değişiklik gerekmez, tüm alanları döndürür)
  */
 const getAllSliders = async (req, res) => {
     try {
         const sliders = await prisma.sliderImage.findMany({
-            orderBy: {
-                order: 'asc' // Sıralamaya göre getir
-            }
+            orderBy: { order: 'asc' }
         });
         res.json(sliders);
     } catch (error) {
@@ -50,19 +47,19 @@ const getAllSliders = async (req, res) => {
 
 /**
  * PUT /api/slider/:id
- * Bir slider öğesini günceller (Sıralama, başlık vb.).
- * Admin Korumalı.
+ * ÇOKLU DİL GÜNCELLENDİ
  */
 const updateSlider = async (req, res) => {
     try {
         const { id } = req.params;
-        const { imageUrl, caption, linkUrl, order } = req.body;
+        const { imageUrl, caption_tr, caption_en, linkUrl, order } = req.body;
 
         const updatedSlider = await prisma.sliderImage.update({
             where: { id: id },
             data: {
                 imageUrl,
-                caption,
+                caption_tr, // Güncellendi
+                caption_en, // Güncellendi
                 linkUrl,
                 order
             }
@@ -75,21 +72,16 @@ const updateSlider = async (req, res) => {
 
 /**
  * DELETE /api/slider/:id
- * Bir slider öğesini siler.
- * Admin Korumalı.
+ * (Değişiklik gerekmez)
  */
 const deleteSlider = async (req, res) => {
     try {
-        const { id } = req.params;
-        await prisma.sliderImage.delete({
-            where: { id: id }
-        });
+        await prisma.sliderImage.delete({ where: { id: req.params.id } });
         res.status(200).json({ message: 'Slider öğesi başarıyla silindi.' });
     } catch (error) {
         res.status(500).json({ error: 'Slider öğesi silinemedi: ' + error.message });
     }
 };
-
 
 module.exports = {
     createSlider,
