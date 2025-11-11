@@ -1,8 +1,8 @@
 "use client"; // Bu dosya tarayıcıda çalışmak zorundadır (useState, localStorage)
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import api from '../lib/api'; // Adım 1'de oluşturduğumuz axios servisi
-import socket from '../lib/socket'; // Adım 2'de oluşturduğumuz socket servisi
+import api from '@/lib/api'; // Adım 1'de oluşturduğumuz axios servisi
+import socket from '@/lib/socket'; // Adım 2'de oluşturduğumuz socket servisi
 
 // Context'in veri yapısı
 interface AuthContextType {
