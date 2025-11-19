@@ -12,7 +12,10 @@ const createPage = async (req, res) => {
         const { 
             title_tr, title_en,
             slug, 
-            layoutJson_tr, layoutJson_en,
+            layoutJson_tr, layoutJson_en,sliderEnabled, sliderPosition,
+            sliderHeightPx_mobile, 
+            sliderHeightPx_desktop, 
+            sliderObjectFit,
             sliderImages // [{ imageUrl: "url1", caption_tr: "a", caption_en: "b" }, ...]
         } = req.body;
 
@@ -27,6 +30,8 @@ const createPage = async (req, res) => {
                 slug,
                 layoutJson_tr,
                 layoutJson_en,
+                sliderEnabled, 
+                sliderPosition,
                 // İlişkili slider görsellerini de çoklu dilde oluştur
                 sliderImages: sliderImages ? {
                     create: sliderImages.map((img, index) => ({
@@ -109,7 +114,7 @@ const updatePage = async (req, res) => {
         const { 
             title_tr, title_en,
             slug, 
-            layoutJson_tr, layoutJson_en 
+            layoutJson_tr, layoutJson_en,sliderEnabled, sliderPosition,
         } = req.body;
         
         // Not: Slider güncellemesi (silme/ekleme) ayrı bir endpoint gerektirebilir
@@ -119,7 +124,7 @@ const updatePage = async (req, res) => {
             data: { 
                 title_tr, title_en,
                 slug, 
-                layoutJson_tr, layoutJson_en
+                layoutJson_tr, layoutJson_en,sliderEnabled, sliderPosition,
             }
         });
         res.json(updatedPage);

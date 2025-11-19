@@ -2,7 +2,9 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "@/app/globals.css";
-import { AuthProvider } from "@/context/AuthContext"; // 1. AuthProvider'ı import et
+import { AuthProvider } from "@/context/AuthContext";
+import { ModalProvider } from "@/context/ModalContext"; // 1. ModalProvider'ı import edin
+import AuthModal from "@/components/auth/AuthModal";     // 2. AuthModal bileşenini import edin
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -20,9 +22,15 @@ export default function RootLayout({
     <html lang="en">
       <body className={inter.className}>
         <AuthProvider>
+          {/* 3. Tüm uygulamayı ModalProvider ile sarmalayın */}
+          <ModalProvider>
+            
+            {children} {/* Sayfalarınız (page.tsx vb.) */}
 
-          {children}
+            {/* 4. Modal'ı buraya ekleyin ki tüm sayfalarda çalışsın */}
+            <AuthModal /> 
 
+          </ModalProvider>
         </AuthProvider>
       </body>
     </html>

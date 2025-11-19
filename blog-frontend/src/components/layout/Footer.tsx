@@ -7,7 +7,7 @@ type Settings = {
   footerLinksJson?: string;
 };
 
-// Sunucu tarafında veriyi çek
+// Sunucu tarafında veri çek
 async function getFooterData() {
   try {
     const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/settings`, {
@@ -24,18 +24,21 @@ async function getFooterData() {
   }
 }
 
-// Bu bir Sunucu Bileşenidir (Server Component), çok hızlıdır.
+// Bu bir Sunucu Bileşenidir (Server Component)
 export default async function Footer() {
   const data = await getFooterData();
   if (!data) return null;
 
+  // Veritabanından gelen Gizlilik Politikası vb. linkler
   const footerLinks = data.footerLinksJson ? JSON.parse(data.footerLinksJson) : [];
+  
+  // TODO: Dili 'lang' prop olarak al
 
   const footerStyle: React.CSSProperties = {
     backgroundColor: 'var(--color-secondary)',
     color: 'var(--color-text)',
     padding: '2rem',
-    marginTop: 'auto', // Sayfa içeriği kısa olsa bile en altta kalır
+    marginTop: 'auto',
     borderTop: '2px solid var(--color-primary)'
   };
 
@@ -45,11 +48,9 @@ export default async function Footer() {
         <div>
           <p>{data.footerText}</p> 
         </div>
-        {/* Footer Linkleri (örn: Gizlilik Sözleşmesi) */}
         <div style={{ display: 'flex', gap: '1rem' }}>
           {footerLinks.map((link: any) => (
             <Link key={link.url} href={link.url}>
-              {/* TODO: Dil seçimine göre _tr/_en göster */}
               {link.text_tr || link.text}
             </Link>
           ))}

@@ -19,7 +19,7 @@ export default async function SettingsPage() {
 
   return (
     <div>
-      <h1>Site Ayarları</h1>
+      <h2 className="lg:text-2xl">Site Ayarları</h2>
       <p>Sitenizin genel görünümünü, SEO, tema ve dil ayarlarını buradan yönetin.</p>
       
       {/* SiteSettingsForm, "use client" bileşenidir.

@@ -37,7 +37,9 @@ const createSlider = async (req, res) => {
 const getAllSliders = async (req, res) => {
     try {
         const sliders = await prisma.sliderImage.findMany({
-            orderBy: { order: 'asc' }
+            orderBy: {
+                order: 'asc' // Sıralamaya göre getir
+            }
         });
         res.json(sliders);
     } catch (error) {
@@ -76,7 +78,10 @@ const updateSlider = async (req, res) => {
  */
 const deleteSlider = async (req, res) => {
     try {
-        await prisma.sliderImage.delete({ where: { id: req.params.id } });
+        const { id } = req.params;
+        await prisma.sliderImage.delete({
+            where: { id: id }
+        });
         res.status(200).json({ message: 'Slider öğesi başarıyla silindi.' });
     } catch (error) {
         res.status(500).json({ error: 'Slider öğesi silinemedi: ' + error.message });

@@ -1,9 +1,13 @@
 // src/controllers/contact.controller.js
+// DİKKAT: Bu dosyanın çalışması için 
+// 1. prisma.js dosyasını 'src/config/' klasörüne taşımanız
+// 2. index.js dosyanızı socket.io için güncellemeniz gerekir.
 const prisma = require('../config/prisma');
 
 /**
  * POST /api/contact
  * Ziyaretçiden gelen iletişim formu gönderisini kaydeder.
+ * GÜNCELLENDİ: Adminlere WebSocket (sesli bildirim) tetikler.
  * Public.
  */
 const createSubmission = async (req, res) => {
@@ -16,16 +20,24 @@ const createSubmission = async (req, res) => {
 
         const submission = await prisma.contactSubmission.create({
             data: {
-                firstName, lastName, email, phone, address, subject, message
+                firstName,
+                lastName,
+                email,
+                phone,
+                address,
+                subject,
+                message
+                // isRead: false (varsayılan)
             }
         });
 
-        // === YENİ EKLEME: WebSocket Bildirimi ===
+        // === YENİ EKLEME: WebSocket Bildirimi (Sesli Uyarı için) ===
         // 1. index.js'te app'e eklediğimiz 'io' sunucusunu al
         const io = req.app.get('io');
         
         // 2. 'admin_room' odasındaki tüm adminlere yeni mesajı ilet
         if (io) {
+            // Bu olayı frontend'deki admin paneli dinleyecek
             io.to('admin_room').emit('admin_new_contact_message', submission);
         }
         // === SON ===

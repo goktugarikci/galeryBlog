@@ -1,7 +1,8 @@
-"use client"; // Form yönetimi için (useState)
+// src/components/admin/SiteSettingsForm.tsx
+"use client"; 
 
 import { useState } from "react";
-import api from "@/lib/api"; // Merkezi Axios istemcimiz
+import api from "@/lib/api"; 
 
 // Gelen ayarların tipini (interface) tanımlayalım
 type SiteSettings = {
@@ -10,8 +11,22 @@ type SiteSettings = {
   navLayout: string;
   eCommerceEnabled: boolean;
   whatsAppNumber: string;
-  // ... (color, seo vb. diğer tüm alanlar)
-  [key: string]: any; // Diğer alanlar için
+  // --- Renk alanları ---
+  colorBackground: string;
+  colorText: string;
+  colorPrimary: string;
+  colorSecondary: string;
+  colorButtonAddToCart: string;
+  colorButtonAddToCartText: string;
+  colorButtonBuyNow: string;
+  colorButtonBuyNowText: string;
+  // --- YENİ: SEO Alanları ---
+  seoTitle: string;
+  seoDescription: string;
+  seoKeywords: string;
+  seoAuthor: string;
+  
+  [key: string]: any; 
 };
 
 export default function SiteSettingsForm({ initialSettings }: { initialSettings: SiteSettings }) {
@@ -21,7 +36,6 @@ export default function SiteSettingsForm({ initialSettings }: { initialSettings:
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
     
-    // Checkbox'lar (boolean) için özel kontrol
     const isCheckbox = type === 'checkbox';
     if (isCheckbox && e.target instanceof HTMLInputElement) {
         setSettings({
@@ -41,12 +55,11 @@ export default function SiteSettingsForm({ initialSettings }: { initialSettings:
     setMessage("Kaydediliyor...");
     
     try {
-      // Axios (api.ts) kullanarak backend'e PUT isteği gönder
-      // Token (Auth) otomatik olarak eklenecektir
+      // Backend'e PUT isteği (tüm ayarları gönderir)
       const response = await api.put("/settings", settings);
       
       setMessage("Ayarlar başarıyla güncellendi!");
-      setSettings(response.data); // Sunucudan dönen en güncel veriyi al
+      setSettings(response.data); 
     } catch (error) {
       console.error(error);
       setMessage("Hata: Ayarlar güncellenemedi.");
@@ -58,8 +71,9 @@ export default function SiteSettingsForm({ initialSettings }: { initialSettings:
 
   return (
     <form onSubmit={handleSubmit} style={{ marginTop: '2rem' }}>
-      <h3>Dil ve Mod Ayarları</h3>
       
+      {/* --- Dil ve Mod Ayarları --- */}
+      <h3>Dil ve Mod Ayarları</h3>
       <div>
         <label>
           <input 
@@ -71,7 +85,6 @@ export default function SiteSettingsForm({ initialSettings }: { initialSettings:
           İngilizce (EN) Dil Desteğini Aktif Et
         </label>
       </div>
-
       <div>
         <label>
           <input 
@@ -84,9 +97,10 @@ export default function SiteSettingsForm({ initialSettings }: { initialSettings:
         </label>
         <small style={{display: 'block'}}> (İşaretlenmezse, WhatsApp Katalog Modu aktif olur)</small>
       </div>
-
+      
       <hr style={{ margin: '1rem 0' }} />
 
+      {/* --- Düzen Ayarları --- */}
       <h3>Düzen Ayarları</h3>
       <label>
         Navigasyon Menü Konumu
@@ -96,27 +110,38 @@ export default function SiteSettingsForm({ initialSettings }: { initialSettings:
         </select>
       </label>
 
+      {/* --- Tema Renkleri --- */}
+      <h3>Tema Renkleri</h3>
+      <label>Ana Arka Plan Rengi <input type="color" name="colorBackground" value={settings.colorBackground} onChange={handleChange} /></label><br />
+      <label>Ana Yazı Rengi <input type="color" name="colorText" value={settings.colorText} onChange={handleChange} /></label><br />
+      <label>Ana Vurgu Rengi (Sarı) <input type="color" name="colorPrimary" value={settings.colorPrimary} onChange={handleChange} /></label><br />
+      <label>İkincil Renk (Navbar vb.) <input type="color" name="colorSecondary" value={settings.colorSecondary} onChange={handleChange} /></label><br />
+      <label>'Sepete Ekle' Buton Rengi <input type="color" name="colorButtonAddToCart" value={settings.colorButtonAddToCart} onChange={handleChange} /></label><br />
+      <label>'Sepete Ekle' Yazı Rengi <input type="color" name="colorButtonAddToCartText" value={settings.colorButtonAddToCartText} onChange={handleChange} /></label><br />
+      <label>'Hemen Al' Buton Rengi <input type="color" name="colorButtonBuyNow" value={settings.colorButtonBuyNow} onChange={handleChange} /></label><br />
+      <label>'Hemen Al' Yazı Rengi <input type="color" name="colorButtonBuyNowText" value={settings.colorButtonBuyNowText} onChange={handleChange} /></label><br />
+
+      {/* --- YENİ EKLENEN SEO BÖLÜMÜ --- */}
       <hr style={{ margin: '1rem 0' }} />
-
-      <h3>Tema Renkleri (Sarı/Siyah Tema)</h3>
+      
+      <h3>Global SEO Ayarları</h3>
       <label>
-        Ana Arka Plan Rengi
-        <input type="color" name="colorBackground" value={settings.colorBackground} onChange={handleChange} />
+        Site Başlığı (SEO Title)
+        <input type="text" name="seoTitle" value={settings.seoTitle || ''} onChange={handleChange} style={inputStyle} />
       </label>
-      <br />
       <label>
-        Ana Yazı Rengi
-        <input type="color" name="colorText" value={settings.colorText} onChange={handleChange} />
+        Site Açıklaması (SEO Description)
+        <input type="text" name="seoDescription" value={settings.seoDescription || ''} onChange={handleChange} style={inputStyle} />
       </label>
-       <br />
       <label>
-        Ana Vurgu Rengi (Sarı)
-        <input type="color" name="colorPrimary" value={settings.colorPrimary} onChange={handleChange} />
+        Anahtar Kelimeler (SEO Keywords)
+        <input type="text" name="seoKeywords" value={settings.seoKeywords || ''} onChange={handleChange} style={inputStyle} placeholder="örn: galeri, blog, sanat" />
       </label>
-
-      {/* (Buraya 'siteName', 'seoTitle', 'whatsAppNumber' vb. 
-        diğer tüm ayar alanları için input'lar eklenebilir) 
-      */}
+      <label>
+        Site Sahibi (SEO Author)
+        <input type="text" name="seoAuthor" value={settings.seoAuthor || ''} onChange={handleChange} style={inputStyle} />
+      </label>
+      {/* --- SEO BÖLÜMÜ SONU --- */}
 
       <hr style={{ margin: '1rem 0' }} />
 

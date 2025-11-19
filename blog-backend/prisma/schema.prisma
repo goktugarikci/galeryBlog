@@ -309,6 +309,15 @@ model DynamicPage {
   // Esnek içerik blokları (JSON formatında)
   layoutJson_tr String?
   layoutJson_en String?
+  // --- YENİ ALANLAR ---
+  sliderEnabled  Boolean  @default(true) // Slider'ı aktif/deaktif et
+  sliderPosition String   @default("top")  // "top" (içeriğin üstü) veya "bottom" (içeriğin altı)
+  // --- YENİ ALANLAR: Slider boyutu ve Responsive ayarları ---
+  sliderHeightPx_mobile Int? @default(200) // Mobil cihazlarda slider yüksekliği (px)
+  sliderHeightPx_desktop Int? @default(400) // Masaüstü cihazlarda slider yüksekliği (px)
+  sliderObjectFit String   @default("cover") // Resmin nasıl sığdırılacağı: 'cover' veya 'contain'
+  // --- YENİ ALANLAR SONU ---
+  
   
   sliderImages DynamicPageSliderImage[]
   createdAt    DateTime @default(now())

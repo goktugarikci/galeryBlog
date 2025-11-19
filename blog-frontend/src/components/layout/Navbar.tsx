@@ -1,7 +1,10 @@
-"use client"; // Hook'ları (useAuth, useState) kullanmak için
+// src/components/layout/Navbar.tsx (GÜNCELLENMİŞ HALİ)
+"use client"; 
 
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
+// 1. YENİ: Modal context'ini import edin
+import { useModal } from '@/context/ModalContext'; 
 import { useEffect, useState } from 'react';
 import api from '@/lib/api';
 
@@ -16,22 +19,19 @@ type Settings = {
 
 export default function Navbar() {
   const { user, logout } = useAuth();
+  // 2. YENİ: openModal fonksiyonunu context'ten alın
+  const { openModal } = useModal(); 
   const [settings, setSettings] = useState<Settings | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   
-  // === HATA DÜZELTMESİ: 'lang' artık bir state ===
-  // Dil seçimini 'tr' olarak başlatıyoruz
   const [lang, setLang] = useState('tr'); 
-  // TODO: Bu 'setLang' fonksiyonunu bir dil değiştirme butonu ile tetikleyebilirsiniz
-  // TODO: Veya localStorage.getItem('currentLang') || 'tr' ile başlatabilirsiniz
 
   useEffect(() => {
-    // Navbar için gerekli verileri (Ayarlar ve Kategoriler) çek
     async function fetchData() {
       try {
         const [settingsRes, categoriesRes] = await Promise.all([
-          api.get('/settings'), // Site Ayarları
-          api.get('/products/categories') // Ürün Kategorileri
+          api.get('/settings'), 
+          api.get('/products/categories') 
         ]);
         setSettings(settingsRes.data);
         setCategories(categoriesRes.data);
@@ -42,7 +42,6 @@ export default function Navbar() {
     fetchData();
   }, []);
 
-  // Ayarlardan gelen dinamik menü linkleri (örn: Hakkımızda, KVKK)
   const navLinks = settings?.navLinksJson ? JSON.parse(settings.navLinksJson) : [];
 
   const navBarStyle: React.CSSProperties = {
@@ -65,10 +64,6 @@ export default function Navbar() {
 
   const navLayout = settings?.navLayout || 'top';
 
-  if (navLayout === 'left') {
-    // TODO: "left" (sol) navbar tasarımı buraya uygulanabilir
-  }
-
   return (
     <header>
       {/* 1. Ana Navbar (Logo, Linkler, Auth) */}
@@ -87,13 +82,12 @@ export default function Navbar() {
         <div className="nav-links" style={{ display: 'flex', gap: '1rem' }}>
           {navLinks.map((link: any) => (
             <Link key={link.url} href={link.url}>
-              {/* Hata burada düzeldi (lang artık bir state) */}
               {lang === 'en' ? link.text_en : link.text_tr}
             </Link>
           ))}
         </div>
 
-        {/* Giriş/Kayıt/Profil Butonları */}
+        {/* 3. DEĞİŞİKLİK: Giriş/Kayıt/Profil Butonları */}
         <div className="auth-links" style={{ display: 'flex', gap: '1rem' }}>
           {user ? (
             <>
@@ -103,12 +97,27 @@ export default function Navbar() {
                   Admin Paneli
                 </Link>
               )}
-              <button onClick={logout}>Çıkış Yap</button>
+              <button onClick={logout} style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', fontFamily: 'inherit', fontSize: 'inherit' }}>
+                Çıkış Yap
+              </button>
             </>
           ) : (
             <>
-              <Link href="/login">Giriş Yap</Link>
-              <Link href="/register">Kayıt Ol</Link>
+              {/* <Link href="/login">Giriş Yap</Link> DEĞİŞTİ */}
+              <button 
+                onClick={() => openModal('login')}
+                style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', fontFamily: 'inherit', fontSize: 'inherit' }}
+              >
+                Giriş Yap
+              </button>
+              
+              {/* <Link href="/register">Kayıt Ol</Link> DEĞİŞTİ */}
+              <button 
+                onClick={() => openModal('register')}
+                style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', fontFamily: 'inherit', fontSize: 'inherit' }}
+              >
+                Kayıt Ol
+              </button>
             </>
           )}
         </div>
@@ -119,7 +128,6 @@ export default function Navbar() {
         <div className="category-bar" style={categoryBarStyle}>
           {categories.map((cat) => (
             <Link key={cat.id} href={`/category/${cat.id}`}>
-              {/* Hata burada düzeldi (lang artık bir state) */}
               {lang === 'en' && settings?.enableEnglish ? cat.name_en : cat.name_tr}
             </Link>
           ))}
