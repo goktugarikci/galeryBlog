@@ -1,25 +1,38 @@
-// src/app/[slug]/page.tsx
+import { cookies } from 'next/headers';
 import { notFound } from 'next/navigation';
-import Navbar from '@/components/layout/Navbar';
-import Footer from '@/components/layout/Footer';
+import DynamicPageSlider from '@/components/common/DynamicPageSlider';
 
-// Tip (backend'den gelen tam veri)
+// --- TİP TANIMLARI ---
+type SliderImage = { 
+  imageUrl: string; 
+  caption_tr?: string; 
+  caption_en?: string; 
+  linkUrl?: string;
+};
+
 type DynamicPage = {
   title_tr: string;
   title_en?: string;
   layoutJson_tr?: string;
   layoutJson_en?: string;
+  
+  // Slider Ayarları
   sliderEnabled: boolean;
   sliderPosition: 'top' | 'bottom';
-  sliderImages: { imageUrl: string; caption_tr?: string; }[];
+  sliderImages: SliderImage[]; 
+  sliderHeightPx_mobile: number;
+  sliderHeightPx_desktop: number;
+  sliderObjectFit: 'cover' | 'contain';
 };
 
-// Sunucuda veriyi slug'a göre çek
+// Sunucuda veriyi slug'a göre çeken fonksiyon
 async function getPageData(slug: string): Promise<DynamicPage | null> {
   try {
+    // Cache'i devre dışı bırakarak her zaman güncel veriyi alıyoruz
     const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/pages/${slug}`, {
-      next: { revalidate: 3600 } // 1 saat cache
+      cache: "no-store" 
     });
+    
     if (!res.ok) return null;
     return res.json();
   } catch (error) {
@@ -28,63 +41,78 @@ async function getPageData(slug: string): Promise<DynamicPage | null> {
 }
 
 // Sayfa Başlığını (Metadata) dinamik olarak ayarla
-export async function generateMetadata({ params }: { params: { slug: string } }) {
-  const page = await getPageData(params.slug);
-  // TODO: Dil seçimine göre title_en'i de destekle
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const page = await getPageData(slug);
+  
+  // SEO başlığı (Varsayılan TR)
   return {
-    title: page?.title_tr || 'Sayfa Bulunamadı'
+    title: page?.title_tr || 'Sayfa Bulunamadı',
   };
 }
 
+// --- SAYFA BİLEŞENİ ---
+export default async function DynamicPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const page = await getPageData(slug);
 
-export default async function DynamicPage({ params }: { params: { slug: string } }) {
-  const page = await getPageData(params.slug);
-
-  // Sayfa bulunamazsa 404 göster
+  // Sayfa bulunamazsa 404 sayfasına yönlendir
   if (!page) {
     notFound();
   }
 
-  // TODO: Dil seçimine göre _en olanları tercih et
-  const title = page.title_tr;
-  const content = page.layoutJson_tr;
+  // Aktif Dili Belirle (Çerezlerden)
+  const cookieStore = await cookies();
+  const lang = cookieStore.get('currentLang')?.value || 'tr';
 
-  // Slider bileşenini (varsa) render et
+  // Dile göre içerik seçimi (EN yoksa TR göster)
+  const title = lang === 'en' && page.title_en ? page.title_en : page.title_tr;
+  const content = lang === 'en' && page.layoutJson_en ? page.layoutJson_en : page.layoutJson_tr;
+
+  // Slider Bileşeni (Tekrar kullanım için)
   const PageSlider = () => (
     page.sliderEnabled && page.sliderImages.length > 0 ? (
-      <section className="w-full h-64 bg-gray-300 mb-8">
-        {/* Buraya <Slider> bileşeni gelecek (şimdilik placeholder) */}
-        <img 
-          src={page.sliderImages[0].imageUrl} 
-          alt={page.sliderImages[0].caption_tr || title}
-          className="w-full h-full object-cover" 
+      <div className="mb-8 w-full">
+        <DynamicPageSlider
+          images={page.sliderImages}
+          heightMobilePx={page.sliderHeightPx_mobile || 200}
+          heightDesktopPx={page.sliderHeightPx_desktop || 400}
+          objectFit={page.sliderObjectFit || 'cover'}
+          altTextDefault={title}
         />
-      </section>
+      </div>
     ) : null
   );
 
   return (
-    <div className="flex flex-col min-h-screen">
-      <Navbar />
+    // Tema renklerini kullanan kapsayıcı
+    <div className="flex flex-col min-h-screen text-[var(--color-text)]">
+      
+      {/* Navbar ve Footer 'PublicLayout' (src/app/layout.tsx) içinde olduğu için buraya eklemiyoruz */}
+      
       <main className="flex-1 container mx-auto p-4 md:p-8">
         
-        {/* Slider Konumu: Üstte */}
+        {/* 1. DURUM: Slider İçeriğin Üstündeyse */}
         {page.sliderPosition === 'top' && <PageSlider />}
 
-        {/* İçerik Metni Konumu */}
-        <article className="prose lg:prose-xl max-w-none">
-          <h1>{title}</h1>
-          {/* 'layoutJson' normalde JSON'dır ve özel bir render'dan geçmelidir.
-            Şimdilik basit metin olarak basıyoruz.
-          */}
-          <div>{content}</div>
+        {/* Sayfa İçeriği */}
+        <article className="prose lg:prose-xl max-w-none mx-auto">
+          <h1 className="text-3xl md:text-4xl font-bold mb-6 text-[var(--color-primary)]">
+            {title}
+          </h1>
+          
+          {/* İçerik Metni (HTML olarak render edilir) */}
+          <div 
+            className="whitespace-pre-wrap leading-relaxed"
+            dangerouslySetInnerHTML={{ __html: content || '' }} 
+          />
         </article>
 
-        {/* Slider Konumu: Altta */}
+        {/* 2. DURUM: Slider İçeriğin Altındaysa */}
         {page.sliderPosition === 'bottom' && <PageSlider />}
 
       </main>
-      <Footer />
+      
     </div>
   );
 }

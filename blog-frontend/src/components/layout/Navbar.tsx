@@ -1,30 +1,34 @@
-// src/components/layout/Navbar.tsx (GÜNCELLENMİŞ HALİ)
-"use client"; 
+"use client";
 
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
-// 1. YENİ: Modal context'ini import edin
-import { useModal } from '@/context/ModalContext'; 
+import { useModal } from '@/context/ModalContext';
+import { useLanguage } from '@/context/LanguageContext';
+import LanguageSwitcher from '@/components/common/LanguageSwitcher';
 import { useEffect, useState } from 'react';
 import api from '@/lib/api';
 
-// Backend'den gelecek veri tipleri
-type Category = { id: string; name_tr: string; name_en?: string; };
+// Veri Tipleri
+type SubCategory = { id: string; name_tr: string; name_en?: string; };
+type Category = { id: string; name_tr: string; name_en?: string; subCategories: SubCategory[] };
 type Settings = { 
   logoUrl?: string; 
   navLayout: string; 
   enableEnglish: boolean; 
   navLinksJson?: string; 
+  siteName?: string;
 };
 
 export default function Navbar() {
   const { user, logout } = useAuth();
-  // 2. YENİ: openModal fonksiyonunu context'ten alın
-  const { openModal } = useModal(); 
+  const { openModal } = useModal();
+  const { lang } = useLanguage();
+  
   const [settings, setSettings] = useState<Settings | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   
-  const [lang, setLang] = useState('tr'); 
+  // Mobilde (Top Menu) Dropdown kontrolü için state
+  const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchData() {
@@ -43,96 +47,176 @@ export default function Navbar() {
   }, []);
 
   const navLinks = settings?.navLinksJson ? JSON.parse(settings.navLinksJson) : [];
+  const isLeftLayout = settings?.navLayout === 'left';
 
-  const navBarStyle: React.CSSProperties = {
+  // --- ORTAK STİLLER (Veritabanından) ---
+  const themeColors = {
     backgroundColor: 'var(--color-secondary)',
-    color: 'var(--color-primary)',
-    padding: '1rem',
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    borderBottom: '2px solid var(--color-primary)'
+    color: 'var(--color-text)',
+    borderColor: 'var(--color-primary)',
   };
-
-  const categoryBarStyle: React.CSSProperties = {
-    backgroundColor: '#333',
-    color: 'white',
-    padding: '0.5rem 1rem',
-    display: 'flex',
-    gap: '1.5rem',
-  };
-
-  const navLayout = settings?.navLayout || 'top';
 
   return (
-    <header>
-      {/* 1. Ana Navbar (Logo, Linkler, Auth) */}
-      <nav style={navBarStyle}>
-        <div className="logo">
-          <Link href="/">
+    <>
+      {/* 1. ÜST BAR (HER ZAMAN VAR - Logo, Auth, Dil) */}
+      <header 
+        style={{ 
+          backgroundColor: themeColors.backgroundColor, 
+          color: themeColors.color, 
+          borderBottom: `3px solid ${themeColors.borderColor}`,
+          zIndex: 50 
+        }} 
+        className="sticky top-0 shadow-md px-4 py-3 md:px-8 flex justify-between items-center w-full relative"
+      >
+        {/* Sol: Logo */}
+        <div className="flex-shrink-0">
+          <Link href="/" className="hover:opacity-80 transition-opacity">
             {settings?.logoUrl ? (
-              <img src={settings.logoUrl} alt="Logo" style={{ height: '40px' }} />
+              <img src={settings.logoUrl} alt="Logo" className="h-10 w-auto object-contain" />
             ) : (
-              <span style={{ fontWeight: 'bold', fontSize: '1.5rem' }}>LOGO</span>
+              <span className="text-2xl font-bold tracking-tight">{settings?.siteName || "LOGO"}</span>
             )}
           </Link>
         </div>
-        
-        {/* Dinamik Tekil Sayfa Linkleri (navLinksJson'dan) */}
-        <div className="nav-links" style={{ display: 'flex', gap: '1rem' }}>
-          {navLinks.map((link: any) => (
-            <Link key={link.url} href={link.url}>
-              {lang === 'en' ? link.text_en : link.text_tr}
-            </Link>
-          ))}
-        </div>
 
-        {/* 3. DEĞİŞİKLİK: Giriş/Kayıt/Profil Butonları */}
-        <div className="auth-links" style={{ display: 'flex', gap: '1rem' }}>
+        {/* Orta: Özel Linkler (Sadece Üst Menü modunda buradadır) */}
+        {!isLeftLayout && (
+          <div className="hidden md:flex gap-6 items-center">
+            {navLinks.map((link: any, index: number) => (
+              <Link key={index} href={link.url} className="text-sm font-medium hover:text-[var(--color-primary)] transition-colors">
+                {lang === 'en' && settings?.enableEnglish ? (link.text_en || link.text_tr) : link.text_tr}
+              </Link>
+            ))}
+          </div>
+        )}
+
+        {/* Sağ: Dil ve Giriş İşlemleri */}
+        <div className="flex items-center gap-4">
+          {settings?.enableEnglish && <LanguageSwitcher />}
           {user ? (
-            <>
-              <Link href="/profile">{user.firstName}</Link>
+            <div className="flex items-center gap-4">
+              <div className="text-right hidden sm:block">
+                <span className="block text-sm font-bold">{user.firstName}</span>
+                <span className="block text-xs opacity-75">{user.role === 'admin' ? 'Yönetici' : 'Üye'}</span>
+              </div>
               {user.role === 'admin' && (
-                <Link href="/admin" style={{ color: 'var(--color-primary)', fontWeight: 'bold' }}>
-                  Admin Paneli
-                </Link>
+                <Link href="/admin" className="px-3 py-1.5 text-sm font-bold bg-[var(--color-primary)] text-black rounded hover:opacity-90">Panel</Link>
               )}
-              <button onClick={logout} style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', fontFamily: 'inherit', fontSize: 'inherit' }}>
-                Çıkış Yap
-              </button>
-            </>
+              <button onClick={logout} className="text-sm underline opacity-80 hover:opacity-100">{lang === 'en' ? 'Logout' : 'Çıkış'}</button>
+            </div>
           ) : (
-            <>
-              {/* <Link href="/login">Giriş Yap</Link> DEĞİŞTİ */}
-              <button 
-                onClick={() => openModal('login')}
-                style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', fontFamily: 'inherit', fontSize: 'inherit' }}
-              >
-                Giriş Yap
-              </button>
-              
-              {/* <Link href="/register">Kayıt Ol</Link> DEĞİŞTİ */}
-              <button 
-                onClick={() => openModal('register')}
-                style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', fontFamily: 'inherit', fontSize: 'inherit' }}
-              >
-                Kayıt Ol
-              </button>
-            </>
+            <div className="flex gap-2">
+              <button onClick={() => openModal('login')} className="px-4 py-2 text-sm font-medium border border-current rounded hover:bg-white/10">{lang === 'en' ? 'Login' : 'Giriş Yap'}</button>
+              <button onClick={() => openModal('register')} className="px-4 py-2 text-sm font-medium bg-[var(--color-primary)] text-black rounded hover:opacity-90">{lang === 'en' ? 'Register' : 'Kayıt Ol'}</button>
+            </div>
           )}
         </div>
-      </nav>
+      </header>
 
-      {/* 2. Kategori Barı */}
-      {navLayout === 'top' && categories.length > 0 && (
-        <div className="category-bar" style={categoryBarStyle}>
+      {/* 2. KATEGORİ MENÜSÜ (AYARA GÖRE DEĞİŞİR) */}
+      
+      {/* A) SOL MENÜ MODU (Sidebar - Sadece Kategoriler) */}
+      {isLeftLayout && (
+        <aside 
+          style={{ 
+            backgroundColor: themeColors.backgroundColor, 
+            color: themeColors.color, 
+            borderRight: `1px solid ${themeColors.borderColor}`,
+            top: '64px' // Header yüksekliği kadar aşağıdan başla (yaklaşık)
+          }} 
+          className="fixed left-0 h-[calc(100vh-64px)] w-[250px] overflow-y-auto z-40 hidden md:block shadow-xl scrollbar-thin scrollbar-thumb-gray-600"
+        >
+          <div className="p-4">
+            <h4 className="text-xs font-bold uppercase opacity-50 mb-4 px-2 border-b border-white/10 pb-2">
+              {lang === 'en' ? 'Categories' : 'Kategoriler'}
+            </h4>
+            <div className="space-y-1">
+              {categories.map((cat) => (
+                <div key={cat.id} className="mb-2">
+                  <Link 
+                    href={`/category/${cat.id}`}
+                    className="block py-2 px-3 font-semibold rounded hover:bg-white/10 hover:text-[var(--color-primary)] transition-colors"
+                  >
+                    {lang === 'en' && settings?.enableEnglish ? (cat.name_en || cat.name_tr) : cat.name_tr}
+                  </Link>
+                  {cat.subCategories && cat.subCategories.length > 0 && (
+                    <div className="ml-4 border-l border-white/20 pl-2 mt-1 space-y-1">
+                      {cat.subCategories.map(sub => (
+                        <Link 
+                          key={sub.id} 
+                          href={`/category/sub/${sub.id}`} 
+                          className="block py-1 px-2 text-sm opacity-70 hover:opacity-100 hover:text-[var(--color-primary)] transition-colors"
+                        >
+                          {lang === 'en' && settings?.enableEnglish ? (sub.name_en || sub.name_tr) : sub.name_tr}
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+            
+            {/* Özel Sayfa Linklerini de Buraya Ekleyelim (Sol Menü Modunda) */}
+            <div className="mt-8 pt-4 border-t border-white/10">
+               {navLinks.map((link: any, index: number) => (
+                <Link key={index} href={link.url} className="block py-2 px-3 text-sm font-medium hover:text-[var(--color-primary)]">
+                  {lang === 'en' && settings?.enableEnglish ? (link.text_en || link.text_tr) : link.text_tr}
+                </Link>
+              ))}
+            </div>
+
+          </div>
+        </aside>
+      )}
+
+      {/* B) ÜST MENÜ MODU (DÜZELTİLEN KISIM) */}
+      {!isLeftLayout && categories.length > 0 && (
+        <div 
+          style={{ 
+            backgroundColor: themeColors.backgroundColor, 
+            color: themeColors.color, 
+            borderBottom: `2px solid ${themeColors.borderColor}` 
+          }} 
+          // DÜZELTME: 'overflow-visible' yaptık ki dropdown dışarı taşabilsin.
+          // 'flex-wrap' ekledik ki sığmayanlar aşağı insin, scroll olmasın.
+          className="px-4 md:px-8 py-0 flex flex-wrap gap-x-6 gap-y-0 text-sm relative border-t border-white/10 z-30 overflow-visible"
+        >
           {categories.map((cat) => (
-            <Link key={cat.id} href={`/category/${cat.id}`}>
-              {lang === 'en' && settings?.enableEnglish ? cat.name_en : cat.name_tr}
-            </Link>
+            <div 
+              key={cat.id} 
+              className="relative group py-3" // py-3 buraya taşındı
+              onMouseEnter={() => setActiveDropdown(cat.id)}
+              onMouseLeave={() => setActiveDropdown(null)}
+            >
+              <Link 
+                href={`/category/${cat.id}`}
+                className="whitespace-nowrap font-medium hover:text-[var(--color-primary)] transition-colors block"
+              >
+                {lang === 'en' && settings?.enableEnglish ? (cat.name_en || cat.name_tr) : cat.name_tr}
+              </Link>
+
+              {/* Hover Dropdown (Alt Kategoriler) */}
+              {/* DÜZELTME: z-index artırıldı ve konumlandırma iyileştirildi */}
+              {cat.subCategories && cat.subCategories.length > 0 && (
+                <div 
+                  className="absolute left-0 top-full w-56 bg-[var(--color-secondary)] shadow-2xl rounded-b-md border border-[var(--color-primary)] border-t-0 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-[100]"
+                  style={{ marginTop: '-1px' }} // Sınır çizgisini örtmesi için
+                >
+                  {cat.subCategories.map(sub => (
+                    <Link 
+                      key={sub.id}
+                      href={`/category/sub/${sub.id}`}
+                      className="block px-4 py-3 hover:bg-white/10 hover:text-[var(--color-primary)] text-sm border-b border-white/5 last:border-0"
+                    >
+                      {lang === 'en' && settings?.enableEnglish ? (sub.name_en || sub.name_tr) : sub.name_tr}
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
           ))}
         </div>
       )}
-    </header>
+    </>
   );
 }

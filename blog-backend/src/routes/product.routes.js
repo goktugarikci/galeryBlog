@@ -4,7 +4,7 @@ const {
     createProductCategory, getAllProductCategories, updateProductCategory, deleteProductCategory,
     createProductSubCategory,
     createProduct, getAllProducts, getProductById, updateProduct, deleteProduct,applyDiscount,
-    removeDiscount
+    removeDiscount,updateProductSubCategory,deleteProductSubCategory
 } = require('../controllers/product.controller');
 const { verifyToken, isAdmin } = require('../middleware/auth.middleware');
 
@@ -40,5 +40,8 @@ router.post('/:id/discount', verifyToken, isAdmin, applyDiscount);
  * @access  Private (Admin)
  */
 router.delete('/:id/discount', verifyToken, isAdmin, removeDiscount);
+
+router.put('/subcategories/:id', verifyToken, isAdmin, updateProductSubCategory);
+router.delete('/subcategories/:id', verifyToken, isAdmin, deleteProductSubCategory);
 
 module.exports = router;

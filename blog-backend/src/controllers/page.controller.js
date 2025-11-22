@@ -20,6 +20,7 @@ const createPage = async (req, res) => {
             sliderHeightPx_desktop, 
             sliderObjectFit,
             
+            
             // Slider Görselleri (Array)
             sliderImages 
         } = req.body;
@@ -49,6 +50,7 @@ const createPage = async (req, res) => {
                 sliderHeightPx_mobile: sliderHeightPx_mobile ? parseInt(sliderHeightPx_mobile) : 200,
                 sliderHeightPx_desktop: sliderHeightPx_desktop ? parseInt(sliderHeightPx_desktop) : 400,
                 sliderObjectFit: sliderObjectFit || "cover",
+                
 
                 // İlişkili slider görsellerini oluştur
                 sliderImages: sliderImages && sliderImages.length > 0 ? {
@@ -56,6 +58,8 @@ const createPage = async (req, res) => {
                         imageUrl: img.imageUrl,
                         caption_tr: img.caption_tr,
                         caption_en: img.caption_en,
+                        description_tr: img.description_tr,
+                        description_en: img.description_en,
                         order: img.order !== undefined ? img.order : index // Sıralama verisi varsa kullan yoksa index
                     }))
                 } : undefined
@@ -127,6 +131,8 @@ const updatePage = async (req, res) => {
                         imageUrl: img.imageUrl,
                         caption_tr: img.caption_tr,
                         caption_en: img.caption_en,
+                        description_tr: img.description_tr,
+                        description_en: img.description_en,
                         order: index
                     }))
                 } : undefined

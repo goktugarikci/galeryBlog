@@ -54,7 +54,7 @@ model SiteSettings {
   logoUrl      String?
   footerText   String   @default("© 2025 Tüm hakları saklıdır.")
   homeLayout   String   @default("grid")
-
+  showHomeSlider Boolean @default(true) // YENİ: Anasayfa slider aktif/pasif
   // --- Dil Ayarı ---
   enableEnglish   Boolean  @default(false) // false = Sadece TR, true = TR ve EN aktif
 
@@ -209,6 +209,9 @@ model Product {
 
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
+  // Kampanya İlişkisi
+  campaignIDs String[]   @db.ObjectId
+  campaigns   Campaign[] @relation(fields: [campaignIDs], references: [id])
 }
 
 // Ürün Galerisi Görselleri
@@ -330,6 +333,8 @@ model DynamicPageSliderImage {
   imageUrl   String
   caption_tr String?
   caption_en String?
+  description_tr String?
+  description_en String?
   order      Int      @default(0)
   pageId     String      @db.ObjectId
   page       DynamicPage @relation(fields: [pageId], references: [id], onDelete: Cascade)
@@ -362,4 +367,22 @@ model ChatMessage {
   content    String
   isRead     Boolean  @default(false)
   createdAt  DateTime @default(now())
+}
+// 3. YENİ: Kampanya Modeli
+model Campaign {
+  id             String   @id @default(auto()) @map("_id") @db.ObjectId
+  title_tr       String
+  title_en       String?
+  slug           String   @unique  // URL (örn: /kampanya/yaz-firsatlari)
+  description_tr String?
+  description_en String?
+  
+  isActive       Boolean  @default(true) // Aktif/Deaktif durumu
+  
+  // İlişkili Ürünler
+  productIDs     String[]  @db.ObjectId
+  products       Product[] @relation(fields: [productIDs], references: [id])
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 }

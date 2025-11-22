@@ -270,12 +270,37 @@ const removeDiscount = async (req, res) => {
     }
 };
 
+const updateProductSubCategory = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { name_tr, name_en, description_tr, description_en, categoryId } = req.body;
+        const updatedSubCategory = await prisma.productSubCategory.update({
+            where: { id: id },
+            data: { name_tr, name_en, description_tr, description_en, categoryId }
+        });
+        res.json(updatedSubCategory);
+    } catch (error) {
+        res.status(500).json({ error: 'Alt kategori güncellenemedi: ' + error.message });
+    }
+};
+
+const deleteProductSubCategory = async (req, res) => {
+    try {
+        await prisma.productSubCategory.delete({ where: { id: req.params.id } });
+        res.status(200).json({ message: 'Alt kategori başarıyla silindi.' });
+    } catch (error) {
+        res.status(500).json({ error: 'Alt kategori silinemedi: ' + error.message });
+    }
+};
+
 module.exports = {
   createProductCategory,
   getAllProductCategories,
   updateProductCategory,
   deleteProductCategory,
   createProductSubCategory,
+  updateProductSubCategory,
+  deleteProductSubCategory,
   createProduct,
   getAllProducts,
   getProductById,

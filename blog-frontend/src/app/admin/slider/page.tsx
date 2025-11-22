@@ -2,11 +2,16 @@
 import SliderManager from "@/components/admin/SliderManager";
 
 async function getSliders() {
-  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/slider`, {
-    cache: "no-store", // Her zaman en güncel slider'ları al
-  });
-  if (!res.ok) throw new Error("Slider verisi yüklenemedi");
-  return res.json();
+  try {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/slider`, {
+      cache: "no-store", // Her zaman en güncel veriyi çek
+    });
+    if (!res.ok) return [];
+    return res.json();
+  } catch (error) {
+    console.error("Slider verisi çekilemedi:", error);
+    return []; // Hata olursa boş dizi döndür ki sayfa çökmesin
+  }
 }
 
 export default async function SliderPage() {
@@ -14,10 +19,7 @@ export default async function SliderPage() {
 
   return (
     <div>
-      <h1>Slider Ayarları</h1>
-      <p>Anasayfa slider görsellerini, yazılarını ve sıralamasını yönetin.</p>
-      
-      {/* Client bileşeni, veriyi prop olarak alır */}
+      {/* Başlıkları kaldırdık, SliderManager içinde zaten var */}
       <SliderManager initialSliders={sliders} />
     </div>
   );

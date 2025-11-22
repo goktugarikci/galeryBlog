@@ -117,27 +117,29 @@ export default function ProductForm({ initialCategories, onClose, onSuccess }: P
     }
   };
 
-  return (
-    // Modal Çerçevesi (Arka Plan)
+return (
+    // DEĞİŞİKLİK: Buradaki 'onClick={onClose}' satırını SİLDİK.
+    // Artık dışarı tıklayınca kapanmayacak.
     <div 
-      className="fixed inset-0 z-50 flex items-center justify-center bg-opacity-50 backdrop-blur-sm"
-      onClick={onClose} 
+      className="fixed inset-0 z-50 flex items-center justify-center bg-opacity-40 backdrop-blur-sm"
     >
       <div
         className="relative w-full max-w-4xl p-6 bg-white rounded-lg shadow-lg text-gray-900 max-h-[90vh] overflow-y-auto"
-        onClick={(e) => e.stopPropagation()}
+        // onClick={(e) => e.stopPropagation()} // Buna da artık gerek kalmadı ama durabilir, zararı yok.
       >
-        {/* Kapatma Butonu */}
+        
+        {/* Kapatma Butonu (Sadece burası kapatacak) */}
         <button 
           onClick={onClose} 
-          className="absolute top-4 right-4 text-gray-500 hover:text-gray-800"
+          className="absolute top-4 right-4 text-gray-500 hover:text-gray-800 transition-colors bg-gray-100 hover:bg-gray-200 p-1 rounded-full"
+          title="Pencereyi Kapat"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
           </svg>
         </button>
 
-        <h2 className="text-2xl font-bold mb-6">Yeni Ürün Ekle</h2>
+        <h2 className="text-2xl font-bold mb-6 text-teal-800 border-b pb-2">Yeni Ürün Ekle</h2>
         
         {/* Asıl Form */}
         <form onSubmit={handleSubmit} className="space-y-6">
