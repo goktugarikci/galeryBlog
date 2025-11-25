@@ -6,7 +6,9 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import socket from "@/lib/socket";
 import api from "@/lib/api";
+import toast from "react-hot-toast"; // Görsel bildirim için
 
+// Kategori Tipleri
 type SubCategory = { id: string; name_tr: string; };
 type Category = { id: string; name_tr: string; subCategories: SubCategory[] };
 
@@ -18,6 +20,7 @@ export default function AdminLayoutClient({
   const { user, isLoading } = useAuth();
   const router = useRouter();
 
+  // State'ler
   const [isPinned, setIsPinned] = useState(true); 
   const [isHovered, setIsHovered] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -25,27 +28,97 @@ export default function AdminLayoutClient({
 
   const isSidebarVisible = isPinned || isHovered;
 
+// --- SES OYNATMA FONKSİYONU (GÜNCELLENMİŞ) ---
+  const playNotificationSound = () => {
+    // 1. Dosya yolunu kontrol et
+    const audio = new Audio('/notification.mp3');
+    
+    // 2. Oynatmayı dene ve hataları yakala
+    const playPromise = audio.play();
+
+    if (playPromise !== undefined) {
+      playPromise
+        .then(() => {
+          console.log("🔊 Bildirim sesi çalındı.");
+        })
+        .catch((error) => {
+          console.warn("🔇 Ses çalınamadı. Sebebi:");
+          if (error.name === 'NotAllowedError') {
+            console.error("⚠️ Tarayıcı otomatik ses çalmayı engelledi. Sayfada bir yere tıklamanız gerekiyor.");
+          } else if (error.name === 'NotSupportedError') {
+             console.error("⚠️ Ses formatı desteklenmiyor veya dosya yolu yanlış.");
+          } else {
+             console.error("⚠️ Dosya bulunamadı (404) veya başka bir hata:", error);
+          }
+        });
+    }
+  };
+  // Kategorileri Çek
   useEffect(() => {
     if (user && user.role === 'admin') {
       api.get('/products/categories')
         .then(res => setCategories(res.data))
-        .catch(err => console.error("Kategoriler menüye yüklenemedi", err));
+        .catch(err => console.error("Kategoriler yüklenemedi", err));
     }
   }, [user]);
 
+  // --- SOCKET VE BİLDİRİM DİNLEYİCİLERİ ---
   useEffect(() => {
     if (user && user.role === "admin") {
       if (!socket.connected) socket.connect();
+      
       socket.emit("admin_connected");
-      socket.on("admin_new_chat_message", () => alert("Yeni Canlı Destek Mesajı!"));
-      socket.on("admin_new_contact_message", () => alert("Yeni İletişim Formu Mesajı!"));
-    }
-    return () => {
-      socket.off("admin_new_chat_message");
-      socket.off("admin_new_contact_message");
-    };
-  }, [user]);
 
+      // 1. Yeni Canlı Destek Mesajı Geldiğinde
+      const handleNewChatMessage = (message: any) => {
+        playNotificationSound(); // Ses çal
+        
+        // Toast Bildirimi Göster
+        toast((t) => (
+          <div className="flex items-center gap-3" onClick={() => router.push('/admin/chats')}>
+            <div className="text-2xl">💬</div>
+            <div>
+              <p className="font-bold text-gray-900">Yeni Destek Mesajı</p>
+              <p className="text-sm text-gray-500 line-clamp-1">{message.content}</p>
+            </div>
+          </div>
+        ), { 
+          duration: 5000, 
+          position: 'top-right',
+          style: { cursor: 'pointer', borderLeft: '4px solid #0d9488' }
+        });
+      };
+
+      // 2. Yeni İletişim Formu Geldiğinde
+      const handleNewContact = (submission: any) => {
+        playNotificationSound(); // Ses çal
+
+        toast((t) => (
+          <div className="flex items-center gap-3">
+            <div className="text-2xl">📩</div>
+            <div>
+              <p className="font-bold text-gray-900">Yeni İletişim Formu</p>
+              <p className="text-sm text-gray-500">{submission.firstName} bir mesaj gönderdi.</p>
+            </div>
+          </div>
+        ), { 
+          duration: 6000, 
+          position: 'top-right',
+          style: { borderLeft: '4px solid #ea580c' } 
+        });
+      };
+
+      socket.on("admin_new_chat_message", handleNewChatMessage);
+      socket.on("admin_new_contact_message", handleNewContact);
+
+      return () => {
+        socket.off("admin_new_chat_message", handleNewChatMessage);
+        socket.off("admin_new_contact_message", handleNewContact);
+      };
+    }
+  }, [user, router]);
+
+  // Yetki Kontrolü
   useEffect(() => {
     if (!isLoading && (!user || user.role !== "admin")) {
       router.push("/");
@@ -56,6 +129,7 @@ export default function AdminLayoutClient({
     return <div className="bg-gray-900 text-white h-screen grid place-items-center">Yükleniyor...</div>;
   }
 
+  // --- FONKSİYONLAR ---
   const toggleDropdown = (categoryId: string) => {
     if (openDropdowns.includes(categoryId)) {
       setOpenDropdowns(openDropdowns.filter(id => id !== categoryId));
@@ -69,8 +143,9 @@ export default function AdminLayoutClient({
     if (isPinned) setIsHovered(false);
   };
 
+  // Stiller
   const sidebarStyle: React.CSSProperties = {
-    width: isSidebarVisible ? "260px" : "60px", // Kapalıyken ikonlar görünsün diye 60px yaptık
+    width: isSidebarVisible ? "260px" : "60px",
     backgroundColor: "var(--color-secondary)",
     color: "var(--color-text)",
     borderRight: "1px solid var(--color-primary)",
@@ -82,7 +157,6 @@ export default function AdminLayoutClient({
     position: "relative"
   };
 
-  // Linkler için ortak stil
   const linkHoverClass = "block p-3 rounded-md transition-colors hover:bg-white/10 hover:text-[var(--color-primary)] flex items-center gap-3 text-sm font-medium";
 
   return (
@@ -117,14 +191,10 @@ export default function AdminLayoutClient({
             <li><Link href="/admin/settings" className={linkHoverClass}>⚙️ <span>Site Ayarları</span></Link></li>
             <li><Link href="/admin/slider" className={linkHoverClass}>🖼️ <span>Slider Ayarları</span></Link></li>
             
-            {/* Ürün & Kampanya Yönetimi */}
             <li className={`pt-4 pb-1 text-xs font-bold text-gray-500 uppercase tracking-wider ${!isSidebarVisible && 'hidden'}`}>İçerik Yönetimi</li>
             
             <li><Link href="/admin/content/products" className={linkHoverClass}>📦 <span>Tüm Ürünler</span></Link></li>
-            
-            {/* YENİ EKLENEN KAMPANYA LİNKİ */}
             <li><Link href="/admin/campaigns" className={linkHoverClass}>🎁 <span>Kampanyalar</span></Link></li>
-            
             <li><Link href="/admin/content/categories" className={linkHoverClass}>Hs <span>Kategoriler</span></Link></li>
 
             {/* Kategoriler Dropdown */}
@@ -157,6 +227,8 @@ export default function AdminLayoutClient({
             <li><Link href="/admin/content/posts" className={linkHoverClass}>📝 <span>Blog Yazıları</span></Link></li>
             <li><Link href="/admin/content/pages" className={linkHoverClass}>📄 <span>Özel Sayfalar</span></Link></li>
             <li><Link href="/admin/orders" className={linkHoverClass}>🛒 <span>Siparişler</span></Link></li>
+            
+            {/* Mesajlar ve Canlı Destek */}
             <li><Link href="/admin/messages" className={linkHoverClass}>📩 <span>Mesajlar</span></Link></li>
             <li><Link href="/admin/chats" className={linkHoverClass}>💬 <span>Canlı Destek</span></Link></li>
           </ul>
