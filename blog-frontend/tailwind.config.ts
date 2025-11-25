@@ -18,6 +18,8 @@ const config: Config = {
         'text': 'var(--color-text)',
         'btn-addtocart': 'var(--color-btn-addtocart)',
         'btn-addtocart-text': 'var(--color-btn-addtocart-text)',
+        'colorCardBackground':'--color-card-background',
+        'colorCardText':'--color-card-text',
       },
     },
   },

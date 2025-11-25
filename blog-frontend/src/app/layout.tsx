@@ -9,6 +9,7 @@ import AuthModal from "@/components/auth/AuthModal";
 import PublicLayout from "@/components/layout/PublicLayout"; // YENİ: İmport
 import { CartProvider } from "@/context/CartContext";
 import CartDrawer from "@/components/shop/CartDrawer";
+import ChatWidget from "@/components/common/ChatWidget";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -67,6 +68,7 @@ return (
                 
                 <AuthModal />
                 <CartDrawer /> {/* YENİ: Sepet Çekmecesi */}
+                <ChatWidget />
 
               </ModalProvider>
             </CartProvider>

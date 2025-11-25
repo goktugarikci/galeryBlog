@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Image from 'next/image';
 import { useAuth } from '@/context/AuthContext';
 import { useModal } from '@/context/ModalContext';
-import { useCart } from '@/context/CartContext'; // Sepet Context'i
+import { useCart } from '@/context/CartContext';
 import { useRouter } from 'next/navigation';
 
 // --- TİP TANIMLARI ---
@@ -46,7 +46,7 @@ export default function ProductDetail({ product, lang, settings }: { product: Pr
 
   // --- AYARLAR VE DİL ---
   const isEn = lang === 'en';
-  const isEcommerce = settings?.eCommerceEnabled ?? true; // Varsayılan olarak E-Ticaret açık
+  const isEcommerce = settings?.eCommerceEnabled ?? true;
 
   // İçerik Çevirisi
   const name = isEn && product.name_en ? product.name_en : product.name_tr;
@@ -77,7 +77,6 @@ export default function ProductDetail({ product, lang, settings }: { product: Pr
     setIsAdding(true);
     try {
       await addToCart(product.id, quantity);
-      // CartContext genellikle state'i günceller ve çekmeceyi açar
     } catch (error) {
       console.error(error);
     } finally {
@@ -90,9 +89,7 @@ export default function ProductDetail({ product, lang, settings }: { product: Pr
     const phoneNumber = settings?.whatsAppNumber?.replace(/[^0-9]/g, "") || ""; 
     let messageTemplate = settings?.whatsAppMessageTemplate || "Merhaba, [ÜRÜN_ADI] hakkında bilgi almak istiyorum.";
     
-    // Şablondaki değişkeni değiştir
     const message = messageTemplate.replace("[ÜRÜN_ADI]", name);
-    
     const url = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
     window.open(url, '_blank');
   };
@@ -102,15 +99,25 @@ export default function ProductDetail({ product, lang, settings }: { product: Pr
     ? (isEn ? 'In Stock' : 'Stokta Var') 
     : (isEn ? 'Out of Stock' : 'Tükendi');
 
+  // --- ORTAK STİLLER (Veritabanından) ---
+  const cardStyle = {
+    backgroundColor: 'var(--color-card-background)', // Kart Arka Planı (YENİ)
+    color: 'var(--color-card-text)',                 // Kart Yazı Rengi (YENİ)
+    borderColor: 'var(--color-primary)'              // Çerçeve (Ana Renk)
+  };
+
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+    <div 
+      className="rounded-xl shadow-sm border overflow-hidden"
+      style={cardStyle}
+    >
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-0 md:gap-8">
         
         {/* 1. SOL KOLON: GALERİ */}
-        <div className="p-6 bg-gray-50 flex flex-col gap-4">
+        <div className="p-6 bg-black/10 flex flex-col gap-4">
           {/* Büyük Resim */}
-          <div className="relative w-full aspect-square bg-white rounded-lg overflow-hidden shadow-sm border border-gray-200 group">
+          <div className="relative w-full aspect-square bg-white/5 rounded-lg overflow-hidden shadow-sm border border-white/10 group">
             <Image 
               src={getImageUrl(product.galleryImages[selectedImageIndex]?.imageUrl || '/placeholder.png')} 
               alt={name}
@@ -152,33 +159,33 @@ export default function ProductDetail({ product, lang, settings }: { product: Pr
         <div className="p-6 md:p-8 flex flex-col">
           
           {/* Başlık */}
-          <h1 className="text-3xl font-bold mb-2 text-[var(--color-text)]">
+          <h1 className="text-3xl font-bold mb-2" style={{ color: 'var(--color-card-text)' }}>
             {name}
           </h1>
           
           {/* SKU ve Stok */}
-          <div className="flex items-center gap-4 text-sm text-gray-500 mb-6">
+          <div className="flex items-center gap-4 text-sm opacity-70 mb-6">
              <span>SKU: {product.sku || 'N/A'}</span>
-             <span className={`px-2 py-0.5 rounded text-xs font-bold ${product.stock > 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+             <span className={`px-2 py-0.5 rounded text-xs font-bold text-white ${product.stock > 0 ? 'bg-green-600' : 'bg-red-600'}`}>
                {stockStatus}
              </span>
           </div>
 
           {/* Fiyat */}
-          <div className="mb-8 pb-6 border-b border-gray-100">
+          <div className="mb-8 pb-6 border-b border-white/10">
             {product.originalPrice && (
-              <span className="text-lg text-gray-400 line-through mr-3">
+              <span className="text-lg opacity-50 line-through mr-3">
                 {product.originalPrice.toLocaleString('tr-TR')} TL
               </span>
             )}
-            <span className="text-4xl font-bold text-[var(--color-primary)]">
+            <span className="text-4xl font-bold" style={{ color: 'var(--color-primary)' }}>
               {product.price.toLocaleString('tr-TR')} TL
             </span>
           </div>
 
           {/* Kısa Açıklama */}
           {shortDesc && (
-            <p className="text-gray-600 mb-8 leading-relaxed">
+            <p className="mb-8 leading-relaxed opacity-80">
               {shortDesc}
             </p>
           )}
@@ -190,21 +197,21 @@ export default function ProductDetail({ product, lang, settings }: { product: Pr
               /* E-TİCARET MODU: Miktar ve Sepete Ekle */
               <>
                 <div className="flex items-center gap-4">
-                  <span className="font-medium text-gray-700">{isEn ? "Quantity:" : "Adet:"}</span>
-                  <div className="flex items-center border border-gray-300 rounded-md h-10 bg-white">
+                  <span className="font-medium opacity-80">{isEn ? "Quantity:" : "Adet:"}</span>
+                  <div className="flex items-center border border-white/20 rounded-md h-10 bg-white/5">
                     <button 
                       onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                      className="px-3 h-full text-gray-600 hover:bg-gray-100 disabled:opacity-50"
+                      className="px-3 h-full hover:bg-white/10 disabled:opacity-50"
                       disabled={quantity <= 1}
                     > - </button>
                     <span className="px-4 font-bold min-w-[2.5rem] text-center">{quantity}</span>
                     <button 
                       onClick={() => setQuantity(Math.min(product.stock, quantity + 1))}
-                      className="px-3 h-full text-gray-600 hover:bg-gray-100 disabled:opacity-50"
+                      className="px-3 h-full hover:bg-white/10 disabled:opacity-50"
                       disabled={quantity >= product.stock}
                     > + </button>
                   </div>
-                  <span className="text-xs text-gray-400 ml-auto">
+                  <span className="text-xs opacity-60 ml-auto">
                     {isEn ? `${product.stock} available` : `${product.stock} stokta`}
                   </span>
                 </div>
@@ -242,32 +249,37 @@ export default function ProductDetail({ product, lang, settings }: { product: Pr
             )}
 
           </div>
-
         </div>
       </div>
 
       {/* 3. ALT BÖLÜM: TABLAR (Açıklama / Özellikler) */}
-      <div className="border-t border-gray-200">
+      <div className="border-t border-white/10">
         {/* Tab Başlıkları */}
-        <div className="flex border-b border-gray-200 bg-gray-50">
+        <div className="flex border-b border-white/10 bg-black/5">
           <button 
             onClick={() => setActiveTab('description')}
-            className={`px-8 py-4 font-bold text-sm uppercase tracking-wider transition-colors border-r border-gray-200 ${activeTab === 'description' ? 'bg-white text-[var(--color-primary)] border-t-2 border-t-[var(--color-primary)]' : 'text-gray-500 hover:text-gray-800 hover:bg-gray-100'}`}
+            className={`px-8 py-4 font-bold text-sm uppercase tracking-wider transition-colors border-r border-white/10 
+                ${activeTab === 'description' 
+                    ? 'bg-[var(--color-card-background)] text-[var(--color-primary)] border-t-2 border-t-[var(--color-primary)]' 
+                    : 'text-[var(--color-card-text)] opacity-60 hover:opacity-100 hover:bg-black/10'}`}
           >
             {isEn ? 'Description' : 'Ürün Açıklaması'}
           </button>
           <button 
             onClick={() => setActiveTab('features')}
-            className={`px-8 py-4 font-bold text-sm uppercase tracking-wider transition-colors border-r border-gray-200 ${activeTab === 'features' ? 'bg-white text-[var(--color-primary)] border-t-2 border-t-[var(--color-primary)]' : 'text-gray-500 hover:text-gray-800 hover:bg-gray-100'}`}
+            className={`px-8 py-4 font-bold text-sm uppercase tracking-wider transition-colors border-r border-white/10 
+                ${activeTab === 'features' 
+                    ? 'bg-[var(--color-card-background)] text-[var(--color-primary)] border-t-2 border-t-[var(--color-primary)]' 
+                    : 'text-[var(--color-card-text)] opacity-60 hover:opacity-100 hover:bg-black/10'}`}
           >
             {isEn ? 'Features' : 'Özellikler'}
           </button>
         </div>
 
         {/* Tab İçeriği */}
-        <div className="p-8 min-h-[200px] bg-white">
+        <div className="p-8 min-h-[200px] bg-[var(--color-card-background)]">
           {activeTab === 'description' && (
-             <div className="prose max-w-none text-gray-700 whitespace-pre-wrap leading-relaxed">
+             <div className="prose max-w-none whitespace-pre-wrap leading-relaxed" style={{ color: 'var(--color-card-text)' }}>
                {description || (isEn ? "No description available." : "Açıklama bulunmuyor.")}
              </div>
           )}
@@ -275,14 +287,14 @@ export default function ProductDetail({ product, lang, settings }: { product: Pr
           {activeTab === 'features' && (
              <div className="max-w-2xl">
                {product.features && product.features.length > 0 ? (
-                 <table className="w-full border-collapse text-sm">
+                 <table className="w-full border-collapse text-sm" style={{ color: 'var(--color-card-text)' }}>
                    <tbody>
                      {product.features.map((feature, idx) => (
-                       <tr key={idx} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
-                         <td className="py-3 px-4 font-bold text-gray-600 w-1/3 bg-gray-50/50">
+                       <tr key={idx} className="border-b border-white/10 last:border-0 hover:bg-white/5">
+                         <td className="py-3 px-4 font-bold w-1/3 bg-black/10 opacity-80">
                            {isEn ? (feature.key_en || feature.key_tr) : feature.key_tr}
                          </td>
-                         <td className="py-3 px-4 text-gray-800">
+                         <td className="py-3 px-4 opacity-90">
                            {isEn ? (feature.value_en || feature.value_tr) : feature.value_tr}
                          </td>
                        </tr>
@@ -290,7 +302,9 @@ export default function ProductDetail({ product, lang, settings }: { product: Pr
                    </tbody>
                  </table>
                ) : (
-                 <p className="text-gray-500 italic">{isEn ? "No features specified." : "Özellik belirtilmemiş."}</p>
+                 <p className="italic opacity-60" style={{ color: 'var(--color-card-text)' }}>
+                    {isEn ? "No features specified." : "Özellik belirtilmemiş."}
+                 </p>
                )}
              </div>
           )}

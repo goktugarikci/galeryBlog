@@ -175,18 +175,47 @@ const updateUserRole = async (req, res) => {
 const getOpenChatRooms = async (req, res) => {
     try {
         const rooms = await prisma.chatRoom.findMany({
-            where: { status: 'open' },
+            // Hem açık hem kapalıları görmek isterseniz 'where' kısmını kaldırabilirsiniz
+            // veya filtre ile alabilirsiniz. Şimdilik hepsini getirelim:
             include: {
-                user: { select: { id: true, firstName: true, lastName: true, email: true } },
-                _count: { // Odadaki okunmamış mesaj sayısı
-                    select: { messages: { where: { isRead: false, authorRole: 'user' } } }
-                }
+                user: { select: { firstName: true, lastName: true, email: true } },
+                messages: { 
+                    orderBy: { createdAt: 'desc' },
+                    take: 1 // Son mesajı göster
+                },
+                _count: { select: { messages: { where: { isRead: false, authorRole: { not: 'admin' } } } } }
             },
             orderBy: { updatedAt: 'desc' }
         });
         res.json(rooms);
     } catch (error) {
-        res.status(500).json({ error: 'Sohbet odaları getirilemedi: ' + error.message });
+        res.status(500).json({ error: error.message });
+    }
+};
+
+// YENİ: Sohbet Durumunu Güncelle (Kapat/Aç)
+const updateChatStatus = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { status } = req.body; // 'open' veya 'closed'
+        await prisma.chatRoom.update({
+            where: { id },
+            data: { status }
+        });
+        res.json({ message: 'Sohbet durumu güncellendi.' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+// YENİ: Sohbeti Sil
+const deleteChatRoom = async (req, res) => {
+    try {
+        const { id } = req.params;
+        await prisma.chatRoom.delete({ where: { id } });
+        res.json({ message: 'Sohbet silindi.' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
     }
 };
 
@@ -226,5 +255,7 @@ module.exports = {
     
     // Eksik olan fonksiyonlar:
     getOpenChatRooms,
-    getChatHistory
+    getChatHistory,
+    updateChatStatus, // Eklendi
+    deleteChatRoom    // Eklendi
 };

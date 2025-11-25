@@ -366,7 +366,7 @@ model ChatRoom {
   status    String     @default("open")
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
-
+  guestName String?
   @@unique([userId, status])
 }
 

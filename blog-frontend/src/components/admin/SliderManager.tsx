@@ -13,13 +13,11 @@ type Slider = {
   order: number;
 };
 
-// Dropdown verileri için tipler
+// Dropdown için özet veri tipleri
 type ProductSummary = { id: string; name_tr: string; };
 type CampaignSummary = { id: string; title_tr: string; slug: string; };
-type SubCategory = { id: string; name_tr: string; };
-type CategorySummary = { id: string; name_tr: string; subCategories: SubCategory[] };
 
-// Tailwind Stilleri (Aynı)
+// Tailwind Stilleri
 const inputClass = "block w-full px-3 py-2 text-sm text-gray-800 bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-teal-500 focus:border-teal-500";
 const labelClass = "block text-xs font-medium text-gray-500 mb-1";
 const buttonClass = "px-4 py-2 text-sm font-semibold text-white bg-teal-700 rounded-md hover:bg-teal-800 transition-colors shadow-sm disabled:opacity-50";
@@ -27,14 +25,13 @@ const buttonClass = "px-4 py-2 text-sm font-semibold text-white bg-teal-700 roun
 export default function SliderManager({ initialSliders }: { initialSliders: Slider[] }) {
   const [sliders, setSliders] = useState<Slider[]>(initialSliders);
   
-  // State'ler
+  // --- State'ler ---
   const [isSliderEnabled, setIsSliderEnabled] = useState(false);
   const [isSettingsLoading, setIsSettingsLoading] = useState(true);
   
   // Link Seçimi İçin Veriler
   const [products, setProducts] = useState<ProductSummary[]>([]);
   const [campaigns, setCampaigns] = useState<CampaignSummary[]>([]);
-  const [categories, setCategories] = useState<CategorySummary[]>([]); // YENİ: Kategoriler
   
   // Form State
   const [file, setFile] = useState<File | null>(null);
@@ -49,26 +46,22 @@ export default function SliderManager({ initialSliders }: { initialSliders: Slid
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState("");
 
-  // --- VERİ ÇEKME ---
+  // --- VERİ ÇEKME İŞLEMLERİ (Ayarlar, Ürünler, Kampanyalar) ---
   useEffect(() => {
     const loadData = async () => {
       try {
-        // 1. Ayarlar
+        // 1. Site Ayarlarını Çek (Slider Durumu)
         const settingsRes = await api.get("/settings");
         setIsSliderEnabled(settingsRes.data.showHomeSlider ?? false);
         setIsSettingsLoading(false);
 
-        // 2. Ürünler
+        // 2. Ürünleri Çek (Listeleme için)
         const productsRes = await api.get("/products");
         setProducts(productsRes.data);
 
-        // 3. Kampanyalar
+        // 3. Kampanyaları Çek
         const campaignsRes = await api.get("/campaigns"); 
         setCampaigns(campaignsRes.data);
-
-        // 4. YENİ: Kategoriler (Ana ve Alt Kategorilerle)
-        const categoriesRes = await api.get("/products/categories");
-        setCategories(categoriesRes.data);
 
       } catch (error) {
         console.error("Veri yükleme hatası:", error);
@@ -77,25 +70,33 @@ export default function SliderManager({ initialSliders }: { initialSliders: Slid
     loadData();
   }, []);
 
-  // --- FONKSİYONLAR (Aynı kalır) ---
+  // --- FONKSİYONLAR ---
+
+  // 1. Slider Aktif/Pasif Değiştir
   const toggleSliderStatus = async () => {
     const newState = !isSliderEnabled;
     setIsSliderEnabled(newState);
     try {
       const currentSettingsRes = await api.get("/settings");
-      await api.put("/settings", { ...currentSettingsRes.data, showHomeSlider: newState });
+      await api.put("/settings", { 
+        ...currentSettingsRes.data, 
+        showHomeSlider: newState 
+      });
       setMessage(newState ? "Slider aktif edildi." : "Slider deaktif edildi.");
     } catch (error) {
+      console.error(error);
       setIsSliderEnabled(!newState);
       setMessage("Durum değiştirilemedi.");
     }
   };
 
+  // 2. Form Input Değişimi
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
   };
 
+  // 3. Düzenleme Modu Başlat
   const startEdit = (slider: Slider) => {
     setFormData({
       id: slider.id,
@@ -109,12 +110,14 @@ export default function SliderManager({ initialSliders }: { initialSliders: Slid
     setMessage("Düzenleme modu aktif.");
   };
 
+  // 4. İptal Et
   const cancelEdit = () => {
     setFormData({ id: "", caption_tr: "", caption_en: "", linkUrl: "", order: 0 });
     setFile(null);
     setMessage("");
   };
 
+  // 5. Kaydetme İşlemi (Ekle veya Güncelle)
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -122,22 +125,32 @@ export default function SliderManager({ initialSliders }: { initialSliders: Slid
 
     try {
       let imageUrl = "";
+      // Yeni resim seçildiyse yükle
       if (file) {
         const uploadFormData = new FormData();
         uploadFormData.append("image", file);
-        const uploadRes = await api.post("/upload/single", uploadFormData, { headers: { "Content-Type": "multipart/form-data" } });
+        const uploadRes = await api.post("/upload/single", uploadFormData, {
+            headers: { "Content-Type": "multipart/form-data" },
+        });
         imageUrl = uploadRes.data.imageUrl;
       }
 
-      const dataToSend = { ...formData, ...(imageUrl && { imageUrl }) };
-
       if (formData.id) {
-        const res = await api.put(`/slider/${formData.id}`, dataToSend);
+        // Güncelleme (PUT)
+        const updateData: any = { ...formData };
+        if (imageUrl) updateData.imageUrl = imageUrl;
+        
+        const res = await api.put(`/slider/${formData.id}`, updateData);
         setSliders(sliders.map(s => s.id === formData.id ? res.data : s));
         setMessage("Slider güncellendi.");
       } else {
-        if (!imageUrl) { setMessage("Lütfen resim seçin."); setIsLoading(false); return; }
-        const res = await api.post("/slider", dataToSend);
+        // Ekleme (POST)
+        if (!imageUrl) {
+          setMessage("Lütfen resim seçin.");
+          setIsLoading(false);
+          return;
+        }
+        const res = await api.post("/slider", { ...formData, imageUrl });
         setSliders([...sliders, res.data]);
         setMessage("Yeni slider eklendi.");
       }
@@ -150,6 +163,7 @@ export default function SliderManager({ initialSliders }: { initialSliders: Slid
     }
   };
 
+  // 6. Silme İşlemi
   const handleDelete = async (id: string) => {
     if (!confirm("Silmek istediğinize emin misiniz?")) return;
     try {
@@ -165,13 +179,15 @@ export default function SliderManager({ initialSliders }: { initialSliders: Slid
   return (
     <div className="space-y-8 pb-10">
       
-      {/* Genel Durum (Aynı) */}
+      {/* --- BÖLÜM 1: GENEL DURUM --- */}
       <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 flex items-center justify-between">
         <div>
           <h2 className="text-lg font-bold text-gray-800">Genel Durum</h2>
           <p className="text-sm text-gray-500">Anasayfadaki slider alanını buradan açıp kapatabilirsiniz.</p>
         </div>
-        {isSettingsLoading ? <span className="text-sm text-gray-400">Yükleniyor...</span> : (
+        {isSettingsLoading ? (
+          <span className="text-sm text-gray-400">Yükleniyor...</span>
+        ) : (
           <label className="relative inline-flex items-center cursor-pointer">
             <input type="checkbox" className="sr-only peer" checked={isSliderEnabled} onChange={toggleSliderStatus} />
             <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-teal-600"></div>
@@ -180,7 +196,7 @@ export default function SliderManager({ initialSliders }: { initialSliders: Slid
         )}
       </div>
 
-      {/* Form */}
+      {/* --- BÖLÜM 2: EKLEME/DÜZENLEME FORMU --- */}
       <form onSubmit={handleSubmit} className="p-6 bg-white rounded-lg shadow-md border border-gray-200">
         <div className="flex justify-between items-center mb-4 border-b pb-2">
           <h3 className="text-xl font-bold text-teal-800">{formData.id ? "Slider Düzenle" : "Yeni Slider Ekle"}</h3>
@@ -188,11 +204,14 @@ export default function SliderManager({ initialSliders }: { initialSliders: Slid
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+          
+          {/* Resim Seçimi */}
           <div className="md:col-span-4">
             <label className={labelClass}>Görsel Seç {formData.id && "(Değiştirmek isterseniz)"}</label>
             <input type="file" onChange={(e) => e.target.files && setFile(e.target.files[0])} accept="image/*" className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-teal-50 file:text-teal-700 hover:file:bg-teal-100"/>
           </div>
 
+          {/* Bilgiler */}
           <div className="md:col-span-8 grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="md:col-span-2">
                <label className={labelClass}>Sıralama</label>
@@ -207,7 +226,7 @@ export default function SliderManager({ initialSliders }: { initialSliders: Slid
                <input type="text" name="caption_en" value={formData.caption_en} onChange={handleInputChange} className={inputClass} />
             </div>
             
-            {/* --- YÖNLENDİRME LİNKİ (KATEGORİLER EKLENDİ) --- */}
+            {/* --- YÖNLENDİRME LİNKİ (Dropdown) --- */}
             <div className="md:col-span-2">
                <label className={labelClass}>Yönlendirme Linki (Hedef Sayfa)</label>
                <select 
@@ -218,50 +237,30 @@ export default function SliderManager({ initialSliders }: { initialSliders: Slid
                >
                  <option value="">-- Link Yok --</option>
                  
-                 {/* 1. KAMPANYALAR */}
+                 {/* Kampanyalar Grubu */}
                  {campaigns.length > 0 && (
-                   <optgroup label="🎁 Kampanyalar">
+                   <optgroup label="Kampanyalar">
                      {campaigns.map(campaign => (
                        <option key={campaign.id} value={`/campaign/${campaign.slug}`}>
-                         {campaign.title_tr}
+                         Kampanya: {campaign.title_tr}
                        </option>
                      ))}
                    </optgroup>
                  )}
 
-                 {/* 2. KATEGORİLER (YENİ EKLENDİ) */}
-                 {categories.length > 0 && (
-                   <optgroup label="📂 Kategoriler">
-                     {categories.map(cat => (
-                       <>
-                         {/* Ana Kategori */}
-                         <option key={cat.id} value={`/category/${cat.id}`}>
-                           ► {cat.name_tr}
-                         </option>
-                         {/* Alt Kategoriler */}
-                         {cat.subCategories.map(sub => (
-                           <option key={sub.id} value={`/category/sub/${sub.id}`}>
-                             &nbsp;&nbsp;&nbsp;&nbsp;↳ {sub.name_tr} ({cat.name_tr})
-                           </option>
-                         ))}
-                       </>
-                     ))}
-                   </optgroup>
-                 )}
-
-                 {/* 3. ÜRÜNLER */}
+                 {/* Ürünler Grubu */}
                  {products.length > 0 && (
-                   <optgroup label="📦 Ürünler">
+                   <optgroup label="Ürünler">
                      {products.map(product => (
                        <option key={product.id} value={`/products/${product.id}`}>
-                         {product.name_tr}
+                         Ürün: {product.name_tr}
                        </option>
                      ))}
                    </optgroup>
                  )}
                  
                </select>
-               <p className="text-[10px] text-gray-400 mt-1">Kampanya, Kategori veya Ürün seçebilirsiniz.</p>
+               <p className="text-[10px] text-gray-400 mt-1">Sadece Kampanyalar ve Ürünler listelenir.</p>
             </div>
 
           </div>
@@ -275,23 +274,27 @@ export default function SliderManager({ initialSliders }: { initialSliders: Slid
         </div>
       </form>
 
-      {/* Liste (Aynı) */}
+      {/* --- BÖLÜM 3: MEVCUT LİSTE --- */}
       <div className="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden">
         <div className="bg-gray-50 px-6 py-3 border-b"><h3 className="text-sm font-bold text-gray-700 uppercase">Mevcut Slider Görselleri</h3></div>
         <div className="divide-y divide-gray-100">
-            {sliders.map((slider) => (
-              <div key={slider.id} className="p-4 flex items-center gap-4 hover:bg-gray-50">
-                <img src={slider.imageUrl} alt="Slide" className="w-24 h-16 object-cover rounded border" />
-                <div className="flex-1">
-                  <p className="font-bold text-gray-800 text-sm">{slider.caption_tr || "(Başlık Yok)"}</p>
-                  <p className="text-xs text-gray-500 truncate">{slider.linkUrl || "Link yok"}</p>
+            {sliders.length === 0 ? (
+              <div className="p-8 text-center text-gray-500">Henüz eklenmiş bir görsel yok.</div>
+            ) : (
+              sliders.map((slider) => (
+                <div key={slider.id} className="p-4 flex flex-col sm:flex-row items-center gap-4 hover:bg-gray-50 transition">
+                  <img src={slider.imageUrl} alt="Slide" className="w-24 h-16 object-cover rounded border" />
+                  <div className="flex-1 text-center sm:text-left w-full">
+                    <p className="font-bold text-gray-800 text-sm">{slider.caption_tr || "(Başlık Yok)"}</p>
+                    <p className="text-xs text-gray-500 mt-1 truncate">{slider.linkUrl || "Link yok"}</p>
+                  </div>
+                  <div className="flex gap-2 w-full sm:w-auto justify-center">
+                    <button onClick={() => startEdit(slider)} className="px-3 py-1 text-xs bg-blue-50 text-blue-600 rounded border border-blue-200 hover:bg-blue-100">Düzenle</button>
+                    <button onClick={() => handleDelete(slider.id)} className="px-3 py-1 text-xs bg-red-50 text-red-600 rounded border border-red-200 hover:bg-red-100">Sil</button>
+                  </div>
                 </div>
-                <div className="flex gap-2">
-                  <button onClick={() => startEdit(slider)} className="px-3 py-1 text-xs bg-blue-50 text-blue-600 rounded border border-blue-200 hover:bg-blue-100">Düzenle</button>
-                  <button onClick={() => handleDelete(slider.id)} className="px-3 py-1 text-xs bg-red-50 text-red-600 rounded border border-red-200 hover:bg-red-100">Sil</button>
-                </div>
-              </div>
-            ))}
+              ))
+            )}
         </div>
       </div>
     </div>

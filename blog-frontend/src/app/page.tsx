@@ -117,7 +117,7 @@ export default async function Home() {
         {/* 2. YENİ ÜRÜNLER ALANI */}
         <section className="container mx-auto px-4 mb-16">
           
-          <div className="flex items-center justify-between mb-8 border-b-2 border-[var(--color-primary)] pb-2">
+          <div className="flex items-center justify-between mb-8 border-b-2 border-[var(--color-primary)] pb-2 p-4">
             <h2 className="text-2xl md:text-3xl font-bold text-[var(--color-primary)]">
               {currentLang === 'en' ? 'New Arrivals' : 'Yeni Ürünler'}
             </h2>

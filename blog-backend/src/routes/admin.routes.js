@@ -9,6 +9,8 @@ const {
     updateUserRole,
     getOpenChatRooms,
     getChatHistory,
+    updateChatStatus,
+    deleteChatRoom,
 } = require('../controllers/admin.controller');
 const { verifyToken, isAdmin } = require('../middleware/auth.middleware');
 
@@ -30,5 +32,7 @@ router.put('/users/:id/role', updateUserRole);
 
 router.get('/chats', getOpenChatRooms);
 router.get('/chats/:roomId', getChatHistory);
+router.put('/chats/:id/status', updateChatStatus); // YENİ
+router.delete('/chats/:id', deleteChatRoom);       // YENİ
 
 module.exports = router;
