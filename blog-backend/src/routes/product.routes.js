@@ -4,7 +4,9 @@ const {
     createProductCategory, getAllProductCategories, updateProductCategory, deleteProductCategory,
     createProductSubCategory,
     createProduct, getAllProducts, getProductById, updateProduct, deleteProduct,applyDiscount,
-    removeDiscount,updateProductSubCategory,deleteProductSubCategory
+    removeDiscount,updateProductSubCategory,deleteProductSubCategory,
+    getProductCategoryById,    
+    getProductSubCategoryById,  
 } = require('../controllers/product.controller');
 const { verifyToken, isAdmin } = require('../middleware/auth.middleware');
 
@@ -43,5 +45,7 @@ router.delete('/:id/discount', verifyToken, isAdmin, removeDiscount);
 
 router.put('/subcategories/:id', verifyToken, isAdmin, updateProductSubCategory);
 router.delete('/subcategories/:id', verifyToken, isAdmin, deleteProductSubCategory);
+router.get('/subcategories/:id', getProductSubCategoryById);
+router.get('/categories/:id', getProductCategoryById); // 
 
 module.exports = router;

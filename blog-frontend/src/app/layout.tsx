@@ -7,6 +7,8 @@ import { ModalProvider } from "@/context/ModalContext";
 import { LanguageProvider } from "@/context/LanguageContext";
 import AuthModal from "@/components/auth/AuthModal";
 import PublicLayout from "@/components/layout/PublicLayout"; // YENİ: İmport
+import { CartProvider } from "@/context/CartContext";
+import CartDrawer from "@/components/shop/CartDrawer";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -46,25 +48,28 @@ export default async function RootLayout({
     '--color-btn-addtocart-text': settings.colorButtonAddToCartText || '#000000',
     '--color-btn-buynow': settings.colorButtonBuyNow || '#000000',
     '--color-btn-buynow-text': settings.colorButtonBuyNowText || '#ffffff',
+    '--color-card-background': settings.colorCardBackground || '#343a40',
+    '--color-card-text': settings.colorCardText || '#ffffff',
   } as React.CSSProperties : {};
 
-  return (
+return (
     <html lang="tr">
-      {/* HATA DÜZELTİLDİ: body'den padding veya layout class'larını kaldırdık */}
       <body className={inter.className} style={themeStyles}>
         <LanguageProvider>
           <AuthProvider>
-            <ModalProvider>
-              
-              {/* YENİ: Tüm içeriği PublicLayout ile sarmalıyoruz */}
-              {/* Bu bileşen admin/public ayrımını yapacak */}
-              <PublicLayout settings={settings}>
-                {children}
-              </PublicLayout>
-              
-              <AuthModal />
+            {/* CartProvider AuthProvider'ın içinde olmalı */}
+            <CartProvider> 
+              <ModalProvider>
+                
+                <PublicLayout settings={settings}>
+                  {children}
+                </PublicLayout>
+                
+                <AuthModal />
+                <CartDrawer /> {/* YENİ: Sepet Çekmecesi */}
 
-            </ModalProvider>
+              </ModalProvider>
+            </CartProvider>
           </AuthProvider>
         </LanguageProvider>
       </body>

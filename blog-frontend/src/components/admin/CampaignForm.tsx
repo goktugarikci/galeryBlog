@@ -78,7 +78,7 @@ export default function CampaignForm({ onClose, onSuccess, initialData }: Props)
   return (
     // Arka Plan (Bulanık ve Yarı Saydam)
     <div 
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 backdrop-blur-sm p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-opacity-40 backdrop-blur-sm p-4"
       onClick={onClose}
     >
       {/* Modal İçeriği */}

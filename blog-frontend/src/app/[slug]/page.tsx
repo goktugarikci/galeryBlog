@@ -41,20 +41,19 @@ async function getPageData(slug: string): Promise<DynamicPage | null> {
 }
 
 // Sayfa Başlığını (Metadata) dinamik olarak ayarla
-export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
-  const { slug } = await params;
-  const page = await getPageData(slug);
+export async function generateMetadata(props: { params: Promise<{ slug: string }> }) {
+  const params = await props.params; // await eklendi
+  const page = await getPageData(params.slug);
   
-  // SEO başlığı (Varsayılan TR)
   return {
     title: page?.title_tr || 'Sayfa Bulunamadı',
   };
 }
 
 // --- SAYFA BİLEŞENİ ---
-export default async function DynamicPage({ params }: { params: Promise<{ slug: string }> }) {
-  const { slug } = await params;
-  const page = await getPageData(slug);
+export default async function DynamicPage(props: { params: Promise<{ slug: string }> }) {
+  const params = await props.params; // await eklendi
+  const page = await getPageData(params.slug);
 
   // Sayfa bulunamazsa 404 sayfasına yönlendir
   if (!page) {
@@ -69,7 +68,7 @@ export default async function DynamicPage({ params }: { params: Promise<{ slug: 
   const title = lang === 'en' && page.title_en ? page.title_en : page.title_tr;
   const content = lang === 'en' && page.layoutJson_en ? page.layoutJson_en : page.layoutJson_tr;
 
-  // Slider Bileşeni (Tekrar kullanım için)
+  // Slider Bileşeni
   const PageSlider = () => (
     page.sliderEnabled && page.sliderImages.length > 0 ? (
       <div className="mb-8 w-full">
@@ -87,8 +86,6 @@ export default async function DynamicPage({ params }: { params: Promise<{ slug: 
   return (
     // Tema renklerini kullanan kapsayıcı
     <div className="flex flex-col min-h-screen text-[var(--color-text)]">
-      
-      {/* Navbar ve Footer 'PublicLayout' (src/app/layout.tsx) içinde olduğu için buraya eklemiyoruz */}
       
       <main className="flex-1 container mx-auto p-4 md:p-8">
         

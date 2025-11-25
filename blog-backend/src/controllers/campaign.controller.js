@@ -102,4 +102,19 @@ const deleteCampaign = async (req, res) => {
     }
 };
 
-module.exports = { createCampaign, getAllCampaigns, getCampaignBySlug, updateCampaign, deleteCampaign };
+// Halka Açık Aktif Kampanyalar
+const getActiveCampaigns = async (req, res) => {
+    try {
+        const campaigns = await prisma.campaign.findMany({
+            where: { isActive: true },
+            orderBy: { createdAt: 'desc' },
+            include: { 
+                _count: { select: { products: true } } 
+            }
+        });
+        res.json(campaigns);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+module.exports = { createCampaign, getAllCampaigns, getCampaignBySlug, updateCampaign, deleteCampaign,getActiveCampaigns };

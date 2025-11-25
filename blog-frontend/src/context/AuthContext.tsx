@@ -6,7 +6,10 @@ import api from '@/lib/api';
 import socket from '@/lib/socket'; 
 
 // 1. YENİ: User tipini tanımla
-type User = { 
+type User = {
+  address: string;
+  phone: string;
+  lastName: any; 
   id: string; 
   email: string; 
   firstName: string; 

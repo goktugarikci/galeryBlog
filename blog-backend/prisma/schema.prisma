@@ -1,8 +1,5 @@
-// =========================================================
-// === TAM PROJE VERİTABANI ŞEMASI (NİHAİ - ÇOKLU DİL) ===
-// =========================================================
+// blog-backend/prisma/schema.prisma
 
-// 1. Jeneratör ve Veri Kaynağı Yapılandırması
 generator client {
   provider = "prisma-client-js"
 }
@@ -68,6 +65,19 @@ model SiteSettings {
   whatsAppNumber        String?
   whatsAppMessageTemplate String? @default("Merhaba, [ÜRÜN_ADI] ürünü hakkında bilgi almak istiyorum.")
 
+  // 1. Kapıda Ödeme
+  paymentCashEnabled Boolean @default(true)
+
+  // 2. Havale / EFT
+  paymentIbanEnabled Boolean @default(true)
+  paymentIbanInfo    String?  // IBAN, Banka Adı vb. açıklamalar
+
+  // 3. Kredi Kartı (e-POS / Iyzico vb.)
+  paymentPosEnabled    Boolean @default(false)
+  paymentPosApiKey     String? // API Key
+  paymentPosSecretKey  String? // Secret Key
+  paymentPosBaseUrl    String? // Örn: https://sandbox-api.iyzipay.com
+
   // --- TEMA RENK AYARLARI (Sarı & Siyah Tema) ---
   colorBackground String   @default("#000000")
   colorText       String   @default("#FFFFFF")
@@ -77,6 +87,8 @@ model SiteSettings {
   colorButtonAddToCartText String   @default("#000000")
   colorButtonBuyNow        String   @default("#FFFFFF")
   colorButtonBuyNowText    String   @default("#000000")
+  colorCardBackground      String   @default("#343a40") // Varsayılan: Koyu Gri
+  colorCardText            String   @default("#FFFFFF") // Varsayılan: Beyaz
 
   // --- Global SEO Ayarları ---
   seoTitle        String?
@@ -207,6 +219,7 @@ model Product {
   galleryImages    ProductImage[]
   cartItems        CartItem[]
 
+  features ProductFeature[]
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
   // Kampanya İlişkisi
@@ -385,4 +398,18 @@ model Campaign {
 
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
+}
+model ProductFeature {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  
+  // Özellik Adı (örn: Renk, Boyut)
+  key_tr    String
+  key_en    String?
+
+  // Özellik Değeri (örn: Kırmızı, XL)
+  value_tr  String
+  value_en  String?
+
+  productId String   @db.ObjectId
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
 }

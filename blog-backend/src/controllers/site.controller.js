@@ -1,7 +1,7 @@
 // src/controllers/site.controller.js
-const prisma = require('../config/prisma'); // DİKKAT: Yolu ../config/prisma olarak düzeltin
+const prisma = require('../config/prisma');
 
-// Ayarları getiren veya yoksa oluşturan yardımcı fonksiyon
+// Yardımcı Fonksiyon: Ayarlar yoksa oluştur, varsa getir
 const getOrCreateSettings = async () => {
   let settings = await prisma.siteSettings.findFirst();
   if (!settings) {
@@ -13,7 +13,8 @@ const getOrCreateSettings = async () => {
 
 /**
  * GET /api/settings
- * Tüm site ayarlarını getirir. (Public)
+ * Tüm site ayarlarını getirir.
+ * Erişim: Public (Herkes görebilir)
  */
 const getSettings = async (req, res) => {
   try {
@@ -26,29 +27,57 @@ const getSettings = async (req, res) => {
 
 /**
  * PUT /api/settings
- * Site ayarlarını günceller. (Admin Korumalı)
- * DİL AYARI EKLENDİ.
+ * Site ayarlarını günceller.
+ * Erişim: Private (Sadece Admin)
  */
 const updateSettings = async (req, res) => {
   try {
     const {
-      siteName, logoUrl, navLinksJson, footerText, homeLayout,
+      // --- Genel Ayarlar ---
+      siteName, 
+      logoUrl, 
+      footerText, 
       
-      // Dil Ayarı
+      // --- Dil ve Mod Ayarları ---
       enableEnglish,
+      showHomeSlider,    // <--- BU ALAN SLIDER'I AÇIP KAPATIR
+      eCommerceEnabled,
+      
+      // --- İletişim ve Düzen ---
+      whatsAppNumber,
+      whatsAppMessageTemplate,
+      navLayout, 
+      navLinksJson, 
+      footerLinksJson, 
+      homeLayout,
 
-      // Düzen Ayarları
-      navLayout, footerLinksJson,
+      // --- Tema Renkleri ---
+      colorPrimary, 
+      colorSecondary, 
+      colorBackground, 
+      colorText,
+      colorButtonAddToCart, 
+      colorButtonAddToCartText, 
+      colorButtonBuyNow, 
+      colorButtonBuyNowText,
+      colorCardBackground,
+      colorCardText,
 
-      // Renkler
-      colorPrimary, colorSecondary, colorBackground, colorText,
-      colorButtonAddToCart, colorButtonAddToCartText, colorButtonBuyNow, colorButtonBuyNowText,
+      // --- SEO Ayarları ---
+      seoTitle, 
+      seoDescription, 
+      seoKeywords, 
+      seoAuthor,
 
-      // SEO
-      seoTitle, seoDescription, seoKeywords, seoAuthor,
+      // --- Ödeme Yöntemi Ayarları ---
+      paymentCashEnabled,
+      paymentIbanEnabled,
+      paymentIbanInfo,
+      paymentPosEnabled,
+      paymentPosApiKey,
+      paymentPosSecretKey,
+      paymentPosBaseUrl
 
-      // E-ticaret Modu
-      eCommerceEnabled, whatsAppNumber, whatsAppMessageTemplate
     } = req.body;
 
     const currentSettings = await getOrCreateSettings();
@@ -56,19 +85,41 @@ const updateSettings = async (req, res) => {
     const updatedSettings = await prisma.siteSettings.update({
       where: { id: currentSettings.id },
       data: {
-        siteName, logoUrl, navLinksJson, footerText, homeLayout,
-        enableEnglish, // YENİ
-        navLayout, footerLinksJson, // YENİ (Dinamik sayfa modülü için)
+        // Genel
+        siteName, logoUrl, footerText,
+        
+        // Modlar
+        enableEnglish,
+        showHomeSlider, // <--- VERİTABANINA KAYIT
+        eCommerceEnabled,
+        
+        // İletişim / Düzen
+        whatsAppNumber, whatsAppMessageTemplate,
+        navLayout, navLinksJson, footerLinksJson, homeLayout,
+
+        // Renkler
         colorPrimary, colorSecondary, colorBackground, colorText,
-        colorButtonAddToCart, colorButtonAddToCartText, colorButtonBuyNow, colorButtonBuyNowText,
+        colorButtonAddToCart, colorButtonAddToCartText, colorButtonBuyNow, colorButtonBuyNowText,colorCardBackground,
+        colorCardText,
+
+        // SEO
         seoTitle, seoDescription, seoKeywords, seoAuthor,
-        eCommerceEnabled, whatsAppNumber, whatsAppMessageTemplate // YENİ (E-ticaret modu için)
+
+        // Ödeme
+        paymentCashEnabled,
+        paymentIbanEnabled,
+        paymentIbanInfo,
+        paymentPosEnabled,
+        paymentPosApiKey,
+        paymentPosSecretKey,
+        paymentPosBaseUrl
       }
     });
     
     res.json(updatedSettings);
 
   } catch (error) {
+    console.error("Ayarlar güncellenirken hata:", error);
     res.status(500).json({ error: 'Ayarlar güncellenemedi: ' + error.message });
   }
 };
