@@ -143,6 +143,14 @@ export default function Navbar() {
                 <span className="block text-sm font-bold">{user.firstName}</span>
                 <span className="block text-xs opacity-75">{user.role === 'admin' ? 'Yönetici' : 'Üye'}</span>
               </div>
+
+              <Link 
+                href="/orders" 
+                className="px-3 py-1.5 text-sm font-medium border border-[var(--color-text)]/30 rounded hover:bg-[var(--color-text)]/10 transition-colors"
+              >
+                {isEn ? 'My Orders' : 'Siparişlerim'}
+              </Link>
+
               {user.role === 'admin' && (
                 <Link href="/admin" className="px-3 py-1.5 text-sm font-bold bg-[var(--color-primary)] text-black rounded hover:opacity-90">Panel</Link>
               )}

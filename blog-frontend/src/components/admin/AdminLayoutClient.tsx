@@ -62,51 +62,65 @@ export default function AdminLayoutClient({
     }
   }, [user]);
 
-  // --- SOCKET VE BİLDİRİM DİNLEYİCİLERİ ---
-  useEffect(() => {
+ useEffect(() => {
     if (user && user.role === "admin") {
       if (!socket.connected) socket.connect();
-      
       socket.emit("admin_connected");
 
-      // 1. Yeni Canlı Destek Mesajı Geldiğinde
+      // 1. CANLI DESTEK MESAJI GELDİĞİNDE
       const handleNewChatMessage = (message: any) => {
-        playNotificationSound(); // Ses çal
-        
-        // Toast Bildirimi Göster
+        playNotificationSound();
+        // Alert yerine Toast kullanıyoruz
         toast((t) => (
-          <div className="flex items-center gap-3" onClick={() => router.push('/admin/chats')}>
-            <div className="text-2xl">💬</div>
-            <div>
-              <p className="font-bold text-gray-900">Yeni Destek Mesajı</p>
-              <p className="text-sm text-gray-500 line-clamp-1">{message.content}</p>
-            </div>
+          <div onClick={() => {
+             toast.dismiss(t.id);
+             router.push('/admin/chats');
+          }} className="cursor-pointer">
+             <b>💬 Yeni Destek Mesajı!</b><br/>
+             <span className="text-sm">{message.content}</span>
           </div>
-        ), { 
-          duration: 5000, 
-          position: 'top-right',
-          style: { cursor: 'pointer', borderLeft: '4px solid #0d9488' }
-        });
+        ), { duration: 5000, icon: '🔔' });
       };
 
-      // 2. Yeni İletişim Formu Geldiğinde
+      // 2. İLETİŞİM FORMU GELDİĞİNDE
       const handleNewContact = (submission: any) => {
-        playNotificationSound(); // Ses çal
+        playNotificationSound();
+        toast((t) => (
+           <div>
+             <b>📩 Yeni İletişim Formu</b><br/>
+             <span className="text-sm">{submission.firstName} size yazdı.</span>
+           </div>
+        ), { duration: 6000, icon: '📬' });
+      };
+
+
+  // 3. YENİ SİPARİŞ GELDİĞİNDE
+      socket.on("admin_new_order", (order: any) => {
+        playNotificationSound(); // Ses Çal
 
         toast((t) => (
-          <div className="flex items-center gap-3">
-            <div className="text-2xl">📩</div>
+          <div 
+            className="flex items-center gap-3 cursor-pointer" 
+            onClick={() => {
+              toast.dismiss(t.id);
+              router.push('/admin/orders'); // Tıklayınca siparişlere git
+            }}
+          >
+            <div className="text-2xl bg-green-100 p-2 rounded-full">📦</div>
             <div>
-              <p className="font-bold text-gray-900">Yeni İletişim Formu</p>
-              <p className="text-sm text-gray-500">{submission.firstName} bir mesaj gönderdi.</p>
+              <p className="font-bold text-gray-900">Yeni Sipariş!</p>
+              <p className="text-sm text-gray-500">
+                {order.customerName} - {order.totalAmount} TL
+              </p>
+              <span className="text-xs text-teal-600 font-medium mt-1 block">İncelemek için tıkla</span>
             </div>
           </div>
         ), { 
-          duration: 6000, 
+          duration: 8000, // Biraz daha uzun kalsın
           position: 'top-right',
-          style: { borderLeft: '4px solid #ea580c' } 
+          style: { borderLeft: '4px solid #10b981', minWidth: '300px' } 
         });
-      };
+      });
 
       socket.on("admin_new_chat_message", handleNewChatMessage);
       socket.on("admin_new_contact_message", handleNewContact);
@@ -114,9 +128,12 @@ export default function AdminLayoutClient({
       return () => {
         socket.off("admin_new_chat_message", handleNewChatMessage);
         socket.off("admin_new_contact_message", handleNewContact);
+        socket.off("admin_new_order"); // Temizlik
       };
     }
   }, [user, router]);
+
+
 
   // Yetki Kontrolü
   useEffect(() => {

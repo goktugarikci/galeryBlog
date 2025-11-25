@@ -1,11 +1,8 @@
 // src/controllers/ecommerce.controller.js
-// DİKKAT: Yolu ../config/prisma olarak düzelttiğinizden emin olun
 const prisma = require('../config/prisma');
 
 // ===================================
 // SEPET FONKSİYONLARI
-// (Not: Bu fonksiyonlar çoğunlukla ID ve stok üzerinden çalışır,
-// dil güncellemesinden doğrudan etkilenmezler.)
 // ===================================
 
 // GET /api/shop/cart - Kullanıcının sepetini getir
@@ -20,8 +17,6 @@ const getCart = async (req, res) => {
                 galleryImages: { take: 1, orderBy: { order: 'asc' } }
             }
         } 
-        // Product'ı tam olarak dahil ettiğimiz için (ilişkili tüm _tr/_en alanları)
-        // frontend'de dil seçimi yapılabilir.
       },
       orderBy: { createdAt: 'desc' }
     });
@@ -40,9 +35,11 @@ const addToCart = async (req, res) => {
     if (!productId || !quantity || quantity <= 0) {
       return res.status(400).json({ error: 'Geçerli bir ürün ID ve adet giriniz.' });
     }
+    
     const product = await prisma.product.findUnique({ where: { id: productId }});
     if (!product) return res.status(404).json({ error: 'Ürün bulunamadı.' });
     
+    // Sepette zaten var mı kontrol et
     const existingCartItem = await prisma.cartItem.findUnique({
       where: { userId_productId: { userId: userId, productId: productId } }
     });
@@ -52,6 +49,7 @@ const addToCart = async (req, res) => {
       newQuantity += existingCartItem.quantity;
     }
     
+    // Stok kontrolü (Sepete eklerken sadece uyarı amaçlı, gerçek düşüm siparişte)
     if (product.stock < newQuantity) {
       return res.status(400).json({ error: 'Yetersiz stok.' });
     }
@@ -78,16 +76,20 @@ const updateCartItemQuantity = async (req, res) => {
     if (!quantity || quantity <= 0) {
       return res.status(400).json({ error: 'Adet 1 veya daha fazla olmalıdır.' });
     }
+    
     const cartItem = await prisma.cartItem.findFirst({
       where: { id: itemId, userId: userId },
       include: { product: true }
     });
+    
     if (!cartItem) {
       return res.status(404).json({ error: 'Sepet öğesi bulunamadı veya size ait değil.' });
     }
+    
     if (cartItem.product.stock < quantity) {
       return res.status(400).json({ error: 'Yetersiz stok.' });
     }
+    
     const updatedItem = await prisma.cartItem.update({
       where: { id: itemId },
       data: { quantity: quantity }
@@ -104,7 +106,7 @@ const removeCartItem = async (req, res) => {
     const { itemId } = req.params;
     const userId = req.user.id;
     await prisma.cartItem.deleteMany({
-      where: { id: itemId, userId: userId } // Sadece kullanıcıya aitse sil
+      where: { id: itemId, userId: userId }
     });
     res.status(200).json({ message: 'Ürün sepetten kaldırıldı.' });
   } catch (error) {
@@ -113,30 +115,31 @@ const removeCartItem = async (req, res) => {
 };
 
 // ===================================
-// SİPARİŞ (CHECKOUT) FONKSİYONLARI (ÇOKLU DİL GÜNCELLENDİ)
+// SİPARİŞ (CHECKOUT) FONKSİYONLARI
 // ===================================
 
 /**
  * POST /api/shop/checkout
- * Sipariş oluşturma (Checkout) işlemi.
+ * Sipariş oluşturma, stok düşme ve bildirim gönderme.
  */
 const createOrder = async (req, res) => {
     const userId = req.user.id;
     const { 
-        paymentMethod,    // "kapida_nakit", "havale"
+        paymentMethod,    
         shippingAddress,
         customerName,
         customerPhone,
-        lang // YENİ: Frontend'in hangi dilde olduğunu al (örn: "en" veya "tr")
+        lang 
     } = req.body;
 
     if (!paymentMethod || !shippingAddress || !customerName || !customerPhone) {
         return res.status(400).json({ error: 'Ödeme yöntemi, teslimat adresi, isim ve telefon zorunludur.' });
     }
 
+    // 1. Sepeti Getir
     const cartItems = await prisma.cartItem.findMany({
         where: { userId: userId },
-        include: { product: true } // Ürünün anlık fiyatı, stoğu ve DİL alanları için
+        include: { product: true } 
     });
 
     if (cartItems.length === 0) {
@@ -144,30 +147,30 @@ const createOrder = async (req, res) => {
     }
 
     try {
+        // 2. Transaction Başlat (Sipariş oluştur, Stok düş, Sepeti sil)
         const newOrder = await prisma.$transaction(async (tx) => {
             
             let totalAmount = 0;
             const orderItemsData = [];
 
+            // Stok ve Fiyat Kontrolü
             for (const item of cartItems) {
                 const product = item.product;
+                // Kritik: İşlem anında stok yetersizse işlemi iptal et (Race Condition koruması)
                 if (product.stock < item.quantity) {
-                    throw new Error(`Yetersiz stok: ${product.name_tr}`); // Hata mesajı için TR adı kullan
+                    throw new Error(`Stok yetersiz: ${product.name_tr} (Kalan: ${product.stock})`);
                 }
 
                 totalAmount += product.price * item.quantity;
                 
-                // === DİL GÜNCELLEMESİ ===
-                // Sipariş anındaki ürün adını, kullanıcının o an seçtiği dile göre belirle
-                // Eğer 'en' seçiliyse ve 'name_en' varsa onu al, yoksa 'name_tr' al.
+                // Sipariş anındaki ürün ismini dile göre kaydet
                 const productNameForOrder = (lang === 'en' && product.name_en) 
                                             ? product.name_en 
                                             : product.name_tr;
-                // === GÜNCELLEME SONU ===
 
                 orderItemsData.push({
                     productId: product.id,
-                    productName: productNameForOrder, // Güncellenmiş alan
+                    productName: productNameForOrder,
                     priceAtPurchase: product.price,
                     quantity: item.quantity
                 });
@@ -175,6 +178,7 @@ const createOrder = async (req, res) => {
 
             const paymentStatus = (paymentMethod === 'havale') ? 'pending_confirmation' : 'unpaid';
 
+            // A. Siparişi Oluştur
             const order = await tx.order.create({
                 data: {
                     userId: userId,
@@ -186,13 +190,13 @@ const createOrder = async (req, res) => {
                     customerName: customerName,
                     customerPhone: customerPhone,
                     items: {
-                        create: orderItemsData // OrderItem kayıtlarını oluştur
+                        create: orderItemsData 
                     }
                 },
                 include: { items: true }
             });
 
-            // Stokları Düş
+            // B. Stokları Düş (Kritik Adım)
             for (const item of cartItems) {
                 await tx.product.update({
                     where: { id: item.productId },
@@ -200,7 +204,7 @@ const createOrder = async (req, res) => {
                 });
             }
 
-            // Sepeti Temizle
+            // C. Sepeti Temizle
             await tx.cartItem.deleteMany({
                 where: { userId: userId }
             });
@@ -208,10 +212,43 @@ const createOrder = async (req, res) => {
             return order;
         });
 
+        // --- SOCKET VE BİLDİRİM İŞLEMLERİ (Transaction Başarılıysa) ---
+        const io = req.app.get('io');
+        
+        // 1. Canlı Stok Güncelleme Bildirimi (Tüm kullanıcılara)
+        if (io) {
+            cartItems.forEach(item => {
+                io.emit('product_stock_update', { productId: item.productId });
+            });
+            
+            // 2. Admin Paneline Yeni Sipariş Bildirimi (Sesli uyarı için)
+            io.to('admin_room').emit('admin_new_order', {
+                id: newOrder.id,
+                customerName: newOrder.customerName,
+                totalAmount: newOrder.totalAmount,
+                paymentMethod: newOrder.paymentMethod
+            });
+        }
+
+        // 3. Adminler İçin Veritabanına Bildirim Kaydı
+        const admins = await prisma.user.findMany({ where: { role: 'admin' }, select: { id: true } });
+        if (admins.length > 0) {
+            await prisma.notification.createMany({
+                data: admins.map(admin => ({
+                    userId: admin.id,
+                    title: "Yeni Sipariş Geldi!",
+                    message: `${newOrder.customerName} tarafından ${newOrder.totalAmount} TL tutarında sipariş oluşturuldu.`,
+                    link: `/admin/orders`,
+                    type: "order"
+                }))
+            });
+        }
+        // -----------------------------------------------------------
+
         res.status(201).json(newOrder);
 
     } catch (error) {
-        if (error.message.startsWith('Yetersiz stok')) {
+        if (error.message.startsWith('Stok yetersiz')) {
             return res.status(400).json({ error: error.message });
         }
         console.error("Checkout Hatası:", error);
@@ -221,9 +258,7 @@ const createOrder = async (req, res) => {
 
 /**
  * GET /api/shop/orders
- * Kullanıcının kendi sipariş geçmişini getirir.
- * (Bu fonksiyon dil güncellemesinden etkilenmez, çünkü sipariş anındaki
- * (OrderItem) veriyi (productName) zaten doğru dilde kaydettik.)
+ * Kullanıcının sipariş geçmişi.
  */
 const getOrderHistory = async (req, res) => {
     try {
@@ -232,12 +267,22 @@ const getOrderHistory = async (req, res) => {
             where: { userId: userId },
             orderBy: { createdAt: 'desc' },
             include: {
-                items: true // Sipariş detaylarını da al
+                items: {
+                    // Şimdi şemaya eklediğimiz 'product' ilişkisi sayesinde bu çalışacak
+                    include: {
+                        product: { 
+                            select: {
+                                galleryImages: { take: 1, orderBy: { order: 'asc' } }
+                            }
+                        }
+                    }
+                }
             }
         });
         res.json(orders);
     } catch (error) {
-        res.status(500).json({ error: 'Sipariş geçmişi getirilemedi.' });
+        console.error("Sipariş Geçmişi Hatası:", error); // Hatayı konsola yazdır
+        res.status(500).json({ error: 'Sipariş geçmişi getirilemedi: ' + error.message });
     }
 };
 

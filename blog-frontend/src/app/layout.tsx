@@ -9,11 +9,11 @@ import AuthModal from "@/components/auth/AuthModal";
 import CartDrawer from "@/components/shop/CartDrawer";
 import ChatWidget from "@/components/common/ChatWidget";
 import PublicLayout from "@/components/layout/PublicLayout";
-import { Toaster } from 'react-hot-toast'; // BİLDİRİMLER İÇİN BU GEREKLİ
+// BİLDİRİM İÇİN GEREKLİ KÜTÜPHANE
+import { Toaster } from 'react-hot-toast';
 
 const inter = Inter({ subsets: ["latin"] });
 
-// Ayarları veritabanından çek (Tema renkleri için)
 async function getSiteSettings() {
   try {
     const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/settings`, {
@@ -21,9 +21,7 @@ async function getSiteSettings() {
     });
     if (!res.ok) return null;
     return res.json();
-  } catch (error) {
-    return null;
-  }
+  } catch (error) { return null; }
 }
 
 export const metadata: Metadata = {
@@ -38,7 +36,6 @@ export default async function RootLayout({
 }>) {
   const settings = await getSiteSettings();
 
-  // Tema renklerini CSS değişkeni olarak ata
   const themeStyles = settings ? {
     '--color-background': settings.colorBackground || '#ffffff',
     '--color-text': settings.colorText || '#000000',
@@ -56,7 +53,7 @@ export default async function RootLayout({
     <html lang="tr">
       <body className={inter.className} style={themeStyles}>
         
-        {/* 1. BİLDİRİM KUTUSU (Bu olmazsa bildirimler çalışmaz) */}
+        {/* 1. BİLDİRİM KUTUSU (Bu olmazsa toast mesajları ASLA görünmez) */}
         <Toaster position="top-right" reverseOrder={false} />
 
         <LanguageProvider>
@@ -64,16 +61,13 @@ export default async function RootLayout({
             <CartProvider>
               <ModalProvider>
 
-                {/* PublicLayout: Navbar/Footer'ı yönetir */}
                 <PublicLayout settings={settings}>
                   {children}
                 </PublicLayout>
 
-                {/* GLOBAL BİLEŞENLER */}
-                <AuthModal />    {/* Giriş/Kayıt Modalı */}
-                <CartDrawer />   {/* Sepet Çekmecesi */}
-                
-                {/* 2. CANLI DESTEK WIDGET'I (Burada olmalı) */}
+                {/* Global Bileşenler */}
+                <AuthModal />    
+                <CartDrawer />   
                 <ChatWidget />   
 
               </ModalProvider>

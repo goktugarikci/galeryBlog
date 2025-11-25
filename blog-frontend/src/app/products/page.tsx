@@ -1,9 +1,8 @@
 import { cookies } from 'next/headers';
 import Link from 'next/link';
-import ProductCard from '@/components/shop/ProductCard'; // Kart bileşeni
-import ProductFilterPopup from '@/components/shop/ProductFilterPopup'; // Filtreleme butonu
+import Image from 'next/image';
 
-// --- TİP TANIMLARI ---
+// --- Veri Tipleri ---
 type Category = { id: string; name_tr: string; name_en?: string; };
 type SubCategory = { id: string; name_tr: string; name_en?: string; category: Category; };
 type Product = { 
@@ -11,101 +10,146 @@ type Product = {
   name_tr: string; 
   name_en?: string; 
   price: number; 
-  originalPrice?: number; 
-  discountLabel?: string; 
+  originalPrice?: number;
+  discountLabel?: string;
   galleryImages: { imageUrl: string }[];
   subCategory?: SubCategory; 
-  shortDescription_tr?: string;
-  shortDescription_en?: string;
-  stock: number;
-  status: string;
-  sku?: string;
 };
 
-// --- VERİ ÇEKME FONKSİYONU ---
-// searchParams parametresi ile filtreleri alıp API'ye iletiyoruz
-async function getProducts(searchParams?: any): Promise<Product[]> {
+// --- Veri Çekme Fonksiyonu ---
+async function getProducts(): Promise<Product[]> {
   try {
-    // URL parametrelerini oluştur
-    const params = new URLSearchParams();
-    
-    if (searchParams?.minPrice) params.set('minPrice', searchParams.minPrice);
-    if (searchParams?.maxPrice) params.set('maxPrice', searchParams.maxPrice);
-    if (searchParams?.sort) params.set('sort', searchParams.sort);
-
-    // API isteği
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/products?${params.toString()}`, {
-      cache: "no-store" // Her zaman güncel veri
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/products`, {
+      cache: "no-store" 
     });
-
     if (!res.ok) return [];
     return res.json();
   } catch (e) { return []; }
 }
 
-// --- SEO METADATA ---
-export const metadata = {
-  title: 'Tüm Ürünler',
-  description: 'Mağazamızdaki tüm ürünleri inceleyin.',
-};
-
-// --- ANA BİLEŞEN ---
-export default async function ProductsPage(props: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
-  const searchParams = await props.searchParams; // Next.js 15: await gerekli
-  const products = await getProducts(searchParams);
-  
+// --- Ana Sayfa Bileşeni ---
+export default async function ProductsPage() {
+  const products = await getProducts();
   const cookieStore = await cookies();
   const lang = cookieStore.get('currentLang')?.value || 'tr';
-  const isEn = lang === 'en';
 
   return (
-    <div className="min-h-screen bg-[var(--color-background)] text-[var(--color-text)] py-12 transition-colors duration-300">
-      <div className="container mx-auto px-4">
+    // Ana arka plan rengini kullanıyoruz
+    <div className="flex flex-col min-h-screen bg-[var(--color-background)] text-[var(--color-text)]">
+      
+      <main className="flex-1 container mx-auto p-4 md:p-8">
         
-        {/* Başlık */}
+        {/* Başlık - Alt Çizgi Primary Renk */}
         <div className="flex items-center justify-between mb-8 border-b-2 border-[var(--color-primary)] pb-4">
-          <div>
-             <h1 className="text-3xl font-bold">
-               {isEn ? 'All Products' : 'Tüm Ürünler'}
-             </h1>
-             <p className="text-sm opacity-60 mt-1">
-               {products.length} {isEn ? 'products listed' : 'ürün listeleniyor'}
-             </p>
-          </div>
-          
-          {/* Eğer filtre varsa temizleme butonu */}
-          {(searchParams?.minPrice || searchParams?.maxPrice || (searchParams?.sort && searchParams?.sort !== 'newest')) && (
-             <Link href="/products" className="text-sm text-red-500 hover:underline">
-               {isEn ? 'Clear Filters' : 'Filtreleri Temizle'}
-             </Link>
-          )}
+          <h1 className="text-3xl font-bold">
+            {lang === 'en' ? 'All Products' : 'Tüm Ürünler'}
+          </h1>
+          <span className="text-sm opacity-60">{products.length} {lang === 'en' ? 'Products Listed' : 'Ürün Listeleniyor'}</span>
         </div>
 
-        {/* Ürün Listesi */}
+        {/* Ürün Listesi Grid */}
         {products.length === 0 ? (
-          <div className="text-center py-20 bg-[var(--color-secondary)] rounded-xl border border-dashed border-[var(--color-text)]/20">
-            <p className="text-lg opacity-70">
-              {isEn ? 'No products found.' : 'Aradığınız kriterlere uygun ürün bulunamadı.'}
-            </p>
+          <div className="text-center py-20 bg-[var(--color-secondary)] rounded-lg border border-dashed border-[var(--color-text)]/20">
+            <p className="text-lg opacity-70">{lang === 'en' ? 'No products found.' : 'Henüz ürün eklenmemiş.'}</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {products.map((product) => (
-              // ProductCard bileşeni artık renkleri ve düzeni kendi içinde yönetiyor
-              <ProductCard 
-                key={product.id} 
-                product={product} 
-                lang={lang} 
-              />
+              <ProductCard key={product.id} product={product} lang={lang} />
             ))}
           </div>
         )}
 
+      </main>
+    </div>
+  );
+}
+
+// --- Ürün Kartı Bileşeni (TEMA GÜNCELLEMESİ) ---
+function ProductCard({ product, lang }: { product: Product, lang: string }) {
+  const isEn = lang === 'en';
+  
+  const title = isEn && product.name_en ? product.name_en : product.name_tr;
+  
+  const subCat = product.subCategory;
+  const parentCat = subCat?.category;
+
+  const categoryName = isEn 
+    ? (parentCat?.name_en || parentCat?.name_tr) 
+    : parentCat?.name_tr;
+    
+  const subCategoryName = isEn 
+    ? (subCat?.name_en || subCat?.name_tr) 
+    : subCat?.name_tr;
+
+  const breadcrumb = categoryName && subCategoryName 
+    ? `${categoryName} > ${subCategoryName}` 
+    : (subCategoryName || '');
+
+  let imageUrl = product.galleryImages[0]?.imageUrl || 'https://via.placeholder.com/400x300?text=No+Image';
+  if (imageUrl.startsWith('/uploads')) {
+    imageUrl = `${process.env.NEXT_PUBLIC_API_URL?.replace('/api', '')}${imageUrl}`;
+  }
+
+  return (
+    <Link 
+      href={`/products/${product.id}`} 
+      // DEĞİŞİKLİK: bg-white yerine bg-[var(--color-secondary)]
+      // DEĞİŞİKLİK: border-gray-200 yerine border-[var(--color-text)]/10 (Hafif görünür sınır)
+      className="group flex flex-col bg-[var(--color-secondary)] border border-[var(--color-text)]/10 rounded-lg overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1 h-full hover:border-[var(--color-primary)]"
+    >
+      {/* 1. Ürün Görseli */}
+      <div className="relative w-full h-64 bg-black/20 overflow-hidden">
+        <Image
+          src={imageUrl}
+          alt={title}
+          fill
+          className="object-cover transition-transform duration-500 group-hover:scale-110"
+          unoptimized={true} 
+        />
+        
+        {product.discountLabel && (
+          <div className="absolute top-2 right-2 bg-red-600 text-white text-xs font-bold px-2 py-1 rounded shadow-sm">
+            {product.discountLabel}
+          </div>
+        )}
       </div>
 
-      {/* Filtreleme Butonu (Popup) */}
-      <ProductFilterPopup lang={lang} />
+      {/* 2. Ürün Bilgileri */}
+      <div className="p-4 flex flex-col flex-1">
+        
+        {/* Kategori Yolu - Rengi opaklık ile ayarlandı */}
+        <div className="text-xs font-medium opacity-50 mb-1 uppercase tracking-wide truncate text-[var(--color-text)]">
+          {breadcrumb}
+        </div>
 
-    </div>
+        {/* Ürün Adı - Ana metin rengi */}
+        <h3 className="text-lg font-bold mb-2 line-clamp-2 group-hover:text-[var(--color-primary)] transition-colors text-[var(--color-text)]">
+          {title}
+        </h3>
+
+        {/* Fiyat Alanı */}
+        <div className="mt-auto pt-3 border-t border-[var(--color-text)]/10 flex items-center justify-between">
+          <div className="flex flex-col">
+            {product.originalPrice && (
+              <span className="text-xs opacity-50 line-through decoration-red-500 text-[var(--color-text)]">
+                {product.originalPrice.toLocaleString('tr-TR')} TL
+              </span>
+            )}
+            {/* Fiyat her zaman Primary (Sarı) renk */}
+            <span className="text-xl font-bold text-[var(--color-primary)]">
+              {product.price.toLocaleString('tr-TR')} TL
+            </span>
+          </div>
+          
+          {/* Buton İkonu: Arka planı Primary, İkonu Secondary (Koyu) */}
+          <div className="w-8 h-8 rounded-full bg-[var(--color-primary)] flex items-center justify-center text-[var(--color-secondary)] group-hover:scale-110 transition-transform">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+            </svg>
+          </div>
+        </div>
+      </div>
+    </Link>
   );
 }

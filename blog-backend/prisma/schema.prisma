@@ -225,6 +225,7 @@ model Product {
   // Kampanya İlişkisi
   campaignIDs String[]   @db.ObjectId
   campaigns   Campaign[] @relation(fields: [campaignIDs], references: [id])
+  orderItems       OrderItem[]
 }
 
 // Ürün Galerisi Görselleri
@@ -272,17 +273,17 @@ model Order {
 }
 
 model OrderItem {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  orderId   String   @db.ObjectId
-  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
+  orderId         String   @db.ObjectId
+  order           Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
   
-  // Anlık Görüntü (Snapshot)
-  productId       String
-  productName     String   // Sipariş anındaki ürün adı (Çoklu dilden hangisi seçildiyse)
+  productId       String   @db.ObjectId
+  product         Product? @relation(fields: [productId], references: [id]) // Bu satır hatayı tetiklemişti
+
+  productName     String   
   priceAtPurchase Float
   quantity        Int
 }
-
 
 // ===========================================
 // YÖNETİM VE İLETİŞİM MODELLERİ
